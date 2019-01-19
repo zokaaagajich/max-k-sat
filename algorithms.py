@@ -77,9 +77,9 @@ def random_algorithm(clauses, literals, num_of_iters):
         for c in clauses:
             curr_max += satisfied_clause(valuation_list, c)
 
-            if curr_max > max:
-                max = curr_max
-                res_val_list = valuation_list
+        if curr_max > max:
+            max = curr_max
+            res_val_list = valuation_list
 
         if max == num_of_clauses:
             break
