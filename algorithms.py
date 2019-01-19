@@ -8,7 +8,7 @@ def extractFromFile(filename):
 
     text = input.readlines()
 
-    for i in range(0, len(text)):
+    for i in range(len(text)):
         text[i] = text[i].split(" ")[:-1]
         text[i] = [int(x) for x in text[i]]
 
@@ -30,15 +30,15 @@ def satisfiedClause(valuation_list, clause):
 
     return 0 if sum(values)==0 else 1
 
-def hardcore(clauses, literals):
-    n = pow(2, literals)
+def bruteForce(clauses, literals):
+    n = 2**literals
     num_of_clauses = len(clauses)
 
     max = 0
     res_val_list = []
 
     # For each combination from 0 to 2^num_of_vars count how much clauses are true
-    for i in range(0, n):
+    for i in range(n):
         curr_max = 0
         valuation_list = binary_list(i, literals)
         for c in clauses:
@@ -48,10 +48,15 @@ def hardcore(clauses, literals):
             max = curr_max
             res_val_list = valuation_list
 
+        if max == num_of_clauses:
+            break
+            
     return (max, res_val_list)
 
+def main():
+    clauses, literals = extractFromFile("input.cnf")
+    max, val_list = bruteForce(clauses, literals)
+    print(max, val_list)
 
-# main
-clauses, literals = extractFromFile("input.cnf")
-max, val_list = hardcore(clauses, literals)
-print(max, val_list)
+if __name__ == "__main__":
+    main()
