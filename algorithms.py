@@ -177,6 +177,43 @@ def simulated_annealing_algorithm(clauses, literals, num_of_iters):
 
     return (max, res_val_list)
 
+
+# PSO ALGORITHM
+#
+
+def sigmoid(velocity):
+    return 1.0/(1+math.exp(-velocity))
+
+def initialize_for_PSO(clauses, literals, num_particles):
+    velocity = [0 for x in range(num_particles)]
+    current_value = []
+    best_value = []
+    position = [[]]
+
+    for i in range(num_particles):
+        for j in range()
+        position[i] = 1 if random.random() < sigmoid(velocity[i]) else 0
+
+
+
+
+
+    return position
+    # n = 2**literals
+    # random_i = randint(0, n-1)
+    #
+    # val_list = binary_list(random_i, literals)
+    # num_true_clauses = 0
+    #
+    # for c in clauses:
+    #     num_true_clauses += satisfied_clause(val_list, c)
+    #
+    # return num_true_clauses, val_list
+
+
+def particle_swarm_optimization_algorithm(clauses, literals):
+    position = initialize_for_PSO(clauses, literals, 10)
+
 def run_brute_force(filename):
     clauses, literals = extract_clauses_literals_from_file(os.path.abspath(filename))
     return brute_force_algorithm(clauses, literals)
@@ -193,11 +230,14 @@ def main():
     max, val_list = run_brute_force("examples/input_easy.cnf")
     print(max, val_list)
 
-    max, val_list = run_random("examples/input_sudoku.cnf", 400)
-    print(max, val_list)
+    # max, val_list = run_random("examples/input_sudoku.cnf", 400)
+    # print(max, val_list)
+    #
+    # max, val_list = run_simulated_annealing("examples/input_sudoku.cnf", 400)
+    # print(max, val_list)
 
-    max, val_list = run_simulated_annealing("examples/input_sudoku.cnf", 400)
-    print(max, val_list)
+    clauses, literals = extract_clauses_literals_from_file(os.path.abspath("examples/input_easy.cnf"))
+    particle_swarm_optimization_algorithm(clauses, literals)
 
 if __name__ == "__main__":
     main()
