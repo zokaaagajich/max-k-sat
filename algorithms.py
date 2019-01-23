@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from random import randint
 import random
 import os
@@ -30,11 +33,17 @@ def binary_list(i, num_literals):
 
 # Returns 1 if clause is true (satistied) or 0 if not satisfied.
 def satisfied_clause(valuation_list, clause):
-    len_clause = len(clause)
-    values = [1-valuation_list[-clause[i]-1] if (clause[i]<0) else valuation_list[clause[i]-1]
-                for i in range(0, len_clause)]
+    for c in clause:
+        if c < 0:
+            v = 1 - valuation_list[-c - 1]
+        else:
+            v = valuation_list[c - 1]
 
-    return 0 if sum(values)==0 else 1
+        if v == 1:
+            return True
+
+    return False
+
 
 # For i combination returns valuation list and number of true clauses
 def solution(i, literals, clauses):
@@ -46,7 +55,7 @@ def solution(i, literals, clauses):
 
     return valuation_list, num_true_clauses
 
-def solution_based_on_val_list(val_list, clauses):
+def fitness(val_list, clauses):
     num_true_clauses = 0
     for c in clauses:
         num_true_clauses += satisfied_clause(val_list, c)
@@ -151,7 +160,7 @@ def simulated_annealing_algorithm(clauses, literals, num_of_iters):
 
     for i in range(num_of_iters):
         new_val_list, pos = invert_val_list_for_SA(curr_val_list)
-        new_max = solution_based_on_val_list(new_val_list, clauses)
+        new_max = fitness(new_val_list, clauses)
 
         if new_max > curr_max:
             curr_max = new_max
@@ -184,35 +193,27 @@ def simulated_annealing_algorithm(clauses, literals, num_of_iters):
 def sigmoid(velocity):
     return 1.0/(1+math.exp(-velocity))
 
-def initialize_for_PSO(clauses, literals, num_particles):
-    velocity = [0 for x in range(num_particles)]
-    current_value = []
-    best_value = []
-    position = [[]]
+def initialize_for_PSO(literals, num_particles):
+    n = 2**literals
+    swarm = []
+    #TODO range
+    v_coeff = 10
+    pos_coeff = 10
 
     for i in range(num_particles):
-        for j in range()
-        position[i] = 1 if random.random() < sigmoid(velocity[i]) else 0
+        j = randint(0, n-1)
+        position = (pos_coeff*random.random(), pos_coeff*random.random())
+        velocity = (v_coeff*random.random(), v_coeff*random.random())
+        swarm.append([binary_list(j, literals), position, velocity])
+
+    return swarm
 
 
-
-
-
-    return position
-    # n = 2**literals
-    # random_i = randint(0, n-1)
-    #
-    # val_list = binary_list(random_i, literals)
-    # num_true_clauses = 0
-    #
-    # for c in clauses:
-    #     num_true_clauses += satisfied_clause(val_list, c)
-    #
-    # return num_true_clauses, val_list
-
-
-def particle_swarm_optimization_algorithm(clauses, literals):
-    position = initialize_for_PSO(clauses, literals, 10)
+def PSO(clauses, literals, num_particles):
+    init = initialize_for_PSO(literals, num_particles)
+    for particle in init:
+        particle_fitness = fitness(particle[0], clauses)
+        print(particle_fitness)
 
 def run_brute_force(filename):
     clauses, literals = extract_clauses_literals_from_file(os.path.abspath(filename))
@@ -226,6 +227,9 @@ def run_simulated_annealing(filename, num_of_iters):
     clauses, literals = extract_clauses_literals_from_file(os.path.abspath(filename))
     return simulated_annealing_algorithm(clauses, literals, num_of_iters)
 
+
+
+
 def main():
     max, val_list = run_brute_force("examples/input_easy.cnf")
     print(max, val_list)
@@ -236,8 +240,8 @@ def main():
     # max, val_list = run_simulated_annealing("examples/input_sudoku.cnf", 400)
     # print(max, val_list)
 
-    clauses, literals = extract_clauses_literals_from_file(os.path.abspath("examples/input_easy.cnf"))
-    particle_swarm_optimization_algorithm(clauses, literals)
+    clauses, literals = extract_clauses_literals_from_file(os.path.abspath("examples/input_sudoku.cnf"))
+    PSO(clauses, literals, 10)
 
 if __name__ == "__main__":
     main()
