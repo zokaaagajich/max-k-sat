@@ -8,18 +8,18 @@ import math
 
 # Functions returns array of clauses [[1,2,3], [-1,2], ... ]
 # and number of literals(variables)
-def extract_clauses_literals_from_file(filename):
-    with open(filename, "r") as input:
-        header = input.readline().split(" ")
+def clauses_from_file(filename):
+    with open(filename, "r") as fin:
+        header = fin.readline().split(" ")
         literals = int(header[2].rstrip())
 
-        text = input.readlines()
+        lines = fin.readlines()
 
-        for i in range(len(text)):
-            text[i] = text[i].split(" ")[:-1]
-            text[i] = [int(x) for x in text[i]]
+        for i in range(len(lines)):
+            lines[i] = lines[i].split(" ")[:-1]
+            lines[i] = [int(x) for x in lines[i]]
 
-        return (text, literals)
+        return (lines, literals)
 
 # Returns valuation list for num = 0 and k = 3 : 000
 #                            num = 1 and k = 3 : 001
@@ -32,7 +32,7 @@ def binary_list(i, num_literals):
     return bin_list
 
 # Returns 1 if clause is true (satistied) or 0 if not satisfied.
-def satisfied_clause(valuation_list, clause):
+def is_clause_satisfied(valuation_list, clause):
     for c in clause:
         if c < 0:
             v = 1 - valuation_list[-c - 1]
@@ -51,14 +51,14 @@ def solution(i, literals, clauses):
     num_true_clauses = 0
 
     for c in clauses:
-        num_true_clauses += satisfied_clause(valuation_list, c)
+        num_true_clauses += is_clause_satisfied(valuation_list, c)
 
     return valuation_list, num_true_clauses
 
 def fitness(val_list, clauses):
     num_true_clauses = 0
     for c in clauses:
-        num_true_clauses += satisfied_clause(val_list, c)
+        num_true_clauses += is_clause_satisfied(val_list, c)
     return num_true_clauses
 
 # BRUTE FORCE ALGORITHM
@@ -124,7 +124,7 @@ def initialize_for_SA(clauses, literals):
     num_true_clauses = 0
 
     for c in clauses:
-        num_true_clauses += satisfied_clause(val_list, c)
+        num_true_clauses += is_clause_satisfied(val_list, c)
 
     return num_true_clauses, val_list
 
@@ -187,61 +187,189 @@ def simulated_annealing_algorithm(clauses, literals, num_of_iters):
     return (max, res_val_list)
 
 
+
 # PSO ALGORITHM
-#
+
+"""
+Returns array of clauses with weights = 1
+[{'clause':[1,2,3], 'w':0}, {'clause':[-1,2], 'w':0 }... ]
+and number of literals
+"""
+def w_clauses_from_file(filename):
+    clauses = []
+    with open(filename, "r") as fin:
+        header = fin.readline().split(" ")
+        num_literals = int(header[2].rstrip())
+
+        lines = fin.readlines()
+
+        for line in lines:
+            line = line.split(" ")[:-1]
+            line = [int(x) for x in line]
+            clauses.append({'clause':line, 'w':1})
+
+        return (clauses, num_literals)
+
+"""
+Update clauses weight to identify the hard clauses
+"""
+def update_clauses_weight(clauses, best_particle):
+    for clause in clauses:
+        clause['w'] = clause['w'] + 1 - is_clause_satisfied(best_particle, clause['clause'])
+
 
 def sigmoid(velocity):
     return 1.0/(1+math.exp(-velocity))
 
-def initialize_for_PSO(literals, num_particles):
-    n = 2**literals
-    swarm = []
-    #TODO range
-    v_coeff = 10
-    pos_coeff = 10
 
+def fitness_PSO(val_list, clauses_with_w):
+    return sum(map(lambda i: i['w'] * is_clause_satisfied(val_list, i['clause']), clauses_with_w))
+
+
+"""
+Initialize the population, positions and velocities
+"""
+def init_PSO(literals, num_particles, clauses):
+    print(clauses)
+
+    n = 2**literals
+
+    swarm = []
     for i in range(num_particles):
-        j = randint(0, n-1)
-        position = (pos_coeff*random.random(), pos_coeff*random.random())
-        velocity = (v_coeff*random.random(), v_coeff*random.random())
-        swarm.append([binary_list(j, literals), position, velocity])
+        position = binary_list(randint(0, n-1), literals)
+        #initial velocities from -1 to 1
+        velocity = [2*random.random()-1 for x in range(literals)]
+
+        particle_map = {}
+        particle_map['position'] = position
+        particle_map['velocity'] = velocity
+        particle_map['best'] = particle_map['position']
+        swarm.append(particle_map)
+
+    #TODO remove print
+    print("Init:")
+    for particle in swarm:
+        print(particle)
+    print(10*"-")
 
     return swarm
 
 
-def PSO(clauses, literals, num_particles):
-    init = initialize_for_PSO(literals, num_particles)
-    for particle in init:
-        particle_fitness = fitness(particle[0], clauses)
-        print(particle_fitness)
+def satisfied_clauses(val_list, formula):
+    num_true_clauses = 0
+    for c in formula:
+        num_true_clauses += is_clause_satisfied(val_list, c['clause'])
+    return num_true_clauses
+
+
+def stop_condition(global_best, clauses, num_literals, iteration, max_iteration):
+    #TODO if fitness == num_literas
+    if satisfied_clauses(global_best, clauses) == num_literals or iteration > max_iteration:
+        return True
+    return False
+
+
+def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
+    swarm = init_PSO(literals, num_particles, clauses)
+
+    best_particle_fitnes = 0
+    iteration = 0
+    global_best = swarm[0]['position']
+
+    while(not stop_condition(global_best, clauses, literals, iteration, max_iteration)):
+
+        for particle in swarm:
+            #Calculate fitness
+            particle_fitness = fitness_PSO(particle['position'], clauses)
+
+            #Save the individuals highest fitness (Pg)
+            #Update global best
+            if particle_fitness > best_particle_fitnes:
+                best_particle_fitnes = particle_fitness
+                global_best = particle['position']
+
+        #print("Best fitness:")
+        #print(best_particle_fitnes)
+        #print(global_best)
+
+        #Modify velocities
+        for particle in swarm:
+            r1 = random.random();
+            r2 = random.random();
+            new_velocity = []
+            for i in range(literals):
+                velocity_i = w*particle['velocity'][i] + c1*r1*(particle['best'][i] - particle['position'][i]) + c2*r2*(global_best[i] - particle['position'][i])
+                new_velocity.append(sigmoid(velocity_i))
+            particle['velocity'] = new_velocity
+
+
+        #Update the particles position
+        #TODO using flight
+            r = random.random();
+            new_position = []
+            for i in range(literals):
+                position_i = particle['position'][i] + particle['velocity'][i]
+                position_i = 1 if r < particle['velocity'][i] else 0
+                new_position.append(position_i)
+            particle['position'] = new_position
+
+            #Update particle best
+            if fitness_PSO(particle['position'], clauses) > fitness_PSO(particle['best'], clauses):
+                particle['best'] = particle['position']
+
+            curr_fitness = fitness_PSO(particle['best'], clauses)
+            if curr_fitness > best_particle_fitnes:
+                best_particle_fitnes = curr_fitness
+                global_best = particle['best']
+
+            #print(particle)
+
+
+        update_clauses_weight(clauses, global_best)
+
+        #TODO remove
+        print("Global best:")
+        print(best_particle_fitnes)
+        print("Iteration:")
+        print(iteration)
+        print(global_best)
+
+        iteration += 1
+
+    print("Solution:")
+    print(global_best)
+    print(satisfied_clauses(global_best, clauses))
+    print("In ", iteration, " iterations")
+
 
 def run_brute_force(filename):
-    clauses, literals = extract_clauses_literals_from_file(os.path.abspath(filename))
+    clauses, literals = clauses_from_file(os.path.abspath(filename))
     return brute_force_algorithm(clauses, literals)
 
 def run_random(filename, num_of_iters):
-    clauses, literals = extract_clauses_literals_from_file(os.path.abspath(filename))
+    clauses, literals = clauses_from_file(os.path.abspath(filename))
     return random_algorithm(clauses, literals, num_of_iters)
 
 def run_simulated_annealing(filename, num_of_iters):
-    clauses, literals = extract_clauses_literals_from_file(os.path.abspath(filename))
+    clauses, literals = clauses_from_file(os.path.abspath(filename))
     return simulated_annealing_algorithm(clauses, literals, num_of_iters)
 
 
 
 
 def main():
-    max, val_list = run_brute_force("examples/input_easy.cnf")
-    print(max, val_list)
-
-    # max, val_list = run_random("examples/input_sudoku.cnf", 400)
+    # max, val_list = run_brute_force("examples/input_easy.cnf")
     # print(max, val_list)
-    #
+
     # max, val_list = run_simulated_annealing("examples/input_sudoku.cnf", 400)
     # print(max, val_list)
 
-    clauses, literals = extract_clauses_literals_from_file(os.path.abspath("examples/input_sudoku.cnf"))
-    PSO(clauses, literals, 10)
+    clauses, literals = w_clauses_from_file(os.path.abspath("examples/input_sudoku.cnf"))
+    PSO(clauses, literals, 20, w = 1, c1 = 2, c2 = 2,  max_iteration = 10)
+
+    print("Random:")
+    max, val_list = run_random("examples/input_sudoku.cnf", 400)
+    print(max, val_list)
 
 if __name__ == "__main__":
     main()
