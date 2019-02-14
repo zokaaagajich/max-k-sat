@@ -198,11 +198,15 @@ and number of literals
 def w_clauses_from_file(filename):
     clauses = []
     with open(filename, "r") as fin:
-        header = fin.readline().split(" ")
+        #remove comments from beginning
+        line = fin.readline()
+        while(line.lstrip()[0] == 'c'):
+            line = fin.readline()
+
+        header = line.split(" ")
         num_literals = int(header[2].rstrip())
 
         lines = fin.readlines()
-
         for line in lines:
             line = line.split(" ")[:-1]
             line = [int(x) for x in line]
@@ -364,12 +368,12 @@ def main():
     # max, val_list = run_simulated_annealing("examples/input_sudoku.cnf", 400)
     # print(max, val_list)
 
-    clauses, literals = w_clauses_from_file(os.path.abspath("examples/input_sudoku.cnf"))
+    clauses, literals = w_clauses_from_file(os.path.abspath("examples/f600.cnf"))
     PSO(clauses, literals, 20, w = 1, c1 = 2, c2 = 2,  max_iteration = 10)
 
-    print("Random:")
-    max, val_list = run_random("examples/input_sudoku.cnf", 400)
-    print(max, val_list)
+    #print("Random:")
+    #max, val_list = run_random("examples/input_sudoku.cnf", 400)
+    #print(max, val_list)
 
 if __name__ == "__main__":
     main()
