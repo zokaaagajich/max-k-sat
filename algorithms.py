@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from random import randint
-import random
+from random import randint, uniform, random
 import os
 import math
 
@@ -10,8 +9,13 @@ import math
 # and number of literals(variables)
 def clauses_from_file(filename):
     with open(filename, "r") as fin:
-        header = fin.readline().split(" ")
-        literals = int(header[2].rstrip())
+        #remove comments from beginning
+        line = fin.readline()
+        while(line.lstrip()[0] == 'c'):
+            line = fin.readline()
+
+        header = line.split(" ")
+        num_literals = int(header[2].rstrip())
 
         lines = fin.readlines()
 
@@ -19,25 +23,27 @@ def clauses_from_file(filename):
             lines[i] = lines[i].split(" ")[:-1]
             lines[i] = [int(x) for x in lines[i]]
 
-        return (lines, literals)
+        return (lines, num_literals)
 
-# Returns valuation list for num = 0 and k = 3 : 000
-#                            num = 1 and k = 3 : 001
-#                            ...
-#                            num = 7 and k = 3 : 111
-def binary_list(i, num_literals):
-    bin_str = bin(i)[2:].zfill(num_literals)
-    bin_list = [int(x) for x in bin_str]
 
-    return bin_list
+"""
+Returns binary representation of decimal number with specified width
+example: dec_number = 2 and width = 3, returns: 010
+"""
+def binary_list(dec_number, width):
+    bin_str = bin(dec_number)[2:].zfill(width)
+    return [int(x) for x in bin_str]
 
-# Returns 1 if clause is true (satistied) or 0 if not satisfied.
+
+"""
+Returns True if clause is true (satisfied) or False if not satisfied.
+"""
 def is_clause_satisfied(valuation_list, clause):
-    for c in clause:
-        if c < 0:
-            v = 1 - valuation_list[-c - 1]
+    for literal in clause:
+        if literal < 0:
+            v = 1 - valuation_list[-literal - 1]
         else:
-            v = valuation_list[c - 1]
+            v = valuation_list[literal - 1]
 
         if v == 1:
             return True
@@ -168,7 +174,7 @@ def simulated_annealing_algorithm(clauses, literals, num_of_iters):
 
         elif new_max <= curr_max:
             p = 1.0/math.pow(i+1, 0.5)
-            q = random.uniform(0,1)
+            q = uniform(0,1)
 
             # TODO check sign!!!
             if p > q:
@@ -192,7 +198,7 @@ def simulated_annealing_algorithm(clauses, literals, num_of_iters):
 
 """
 Returns array of clauses with weights = 1
-[{'clause':[1,2,3], 'w':0}, {'clause':[-1,2], 'w':0 }... ]
+[{'clause':[1,2,3], 'w':1}, {'clause':[-1,2], 'w':1}... ]
 and number of literals
 """
 def w_clauses_from_file(filename):
@@ -242,7 +248,7 @@ def init_PSO(literals, num_particles, clauses):
     for i in range(num_particles):
         position = binary_list(randint(0, n-1), literals)
         #initial velocities from -1 to 1
-        velocity = [2*random.random()-1 for x in range(literals)]
+        velocity = [2*random()-1 for x in range(literals)]
 
         particle_map = {}
         particle_map['position'] = position
@@ -298,8 +304,8 @@ def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
 
         #Modify velocities
         for particle in swarm:
-            r1 = random.random();
-            r2 = random.random();
+            r1 = random();
+            r2 = random();
             new_velocity = []
             for i in range(literals):
                 velocity_i = w*particle['velocity'][i] + c1*r1*(particle['best'][i] - particle['position'][i]) + c2*r2*(global_best[i] - particle['position'][i])
@@ -309,7 +315,7 @@ def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
 
         #Update the particles position
         #TODO using flight
-            r = random.random();
+            r = random();
             new_position = []
             for i in range(literals):
                 position_i = particle['position'][i] + particle['velocity'][i]
@@ -371,9 +377,9 @@ def main():
     clauses, literals = w_clauses_from_file(os.path.abspath("examples/f600.cnf"))
     PSO(clauses, literals, 20, w = 1, c1 = 2, c2 = 2,  max_iteration = 10)
 
-    #print("Random:")
-    #max, val_list = run_random("examples/input_sudoku.cnf", 400)
-    #print(max, val_list)
+    print("Random:")
+    max, val_list = run_random("examples/f600.cnf", 400)
+    print(max, val_list)
 
 if __name__ == "__main__":
     main()
