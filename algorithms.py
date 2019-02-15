@@ -240,8 +240,6 @@ def fitness_PSO(val_list, clauses_with_w):
 Initialize the population, positions and velocities
 """
 def init_PSO(literals, num_particles, clauses):
-    print(clauses)
-
     n = 2**literals
 
     swarm = []
@@ -257,10 +255,10 @@ def init_PSO(literals, num_particles, clauses):
         swarm.append(particle_map)
 
     #TODO remove print
-    print("Init:")
-    for particle in swarm:
-        print(particle)
-    print(10*"-")
+    #print("Init:")
+    #for particle in swarm:
+    #    print(particle)
+    #print(10*"-")
 
     return swarm
 
@@ -282,9 +280,9 @@ def stop_condition(global_best, clauses, num_literals, iteration, max_iteration)
 def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
     swarm = init_PSO(literals, num_particles, clauses)
 
-    best_particle_fitnes = 0
     iteration = 0
     global_best = swarm[0]['position']
+    best_particle_fitnes = fitness_PSO(global_best, clauses)
 
     while(not stop_condition(global_best, clauses, literals, iteration, max_iteration)):
 
@@ -298,28 +296,22 @@ def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
                 best_particle_fitnes = particle_fitness
                 global_best = particle['position']
 
-        #print("Best fitness:")
-        #print(best_particle_fitnes)
-        #print(global_best)
-
-        #Modify velocities
-        for particle in swarm:
+            #Modify velocities
             r1 = random();
             r2 = random();
             new_velocity = []
             for i in range(literals):
                 velocity_i = w*particle['velocity'][i] + c1*r1*(particle['best'][i] - particle['position'][i]) + c2*r2*(global_best[i] - particle['position'][i])
-                new_velocity.append(sigmoid(velocity_i))
+                new_velocity.append(velocity_i)
             particle['velocity'] = new_velocity
 
 
-        #Update the particles position
-        #TODO using flight
-            r = random();
+            #Update the particles position
+            #TODO using flight
             new_position = []
             for i in range(literals):
-                position_i = particle['position'][i] + particle['velocity'][i]
-                position_i = 1 if r < particle['velocity'][i] else 0
+                r = random();
+                position_i = 1 if r < sigmoid(particle['velocity'][i]) else 0
                 new_position.append(position_i)
             particle['position'] = new_position
 
@@ -327,6 +319,7 @@ def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
             if fitness_PSO(particle['position'], clauses) > fitness_PSO(particle['best'], clauses):
                 particle['best'] = particle['position']
 
+            #Update global best
             curr_fitness = fitness_PSO(particle['best'], clauses)
             if curr_fitness > best_particle_fitnes:
                 best_particle_fitnes = curr_fitness
@@ -338,11 +331,9 @@ def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
         update_clauses_weight(clauses, global_best)
 
         #TODO remove
-        print("Global best:")
-        print(best_particle_fitnes)
-        print("Iteration:")
-        print(iteration)
-        print(global_best)
+        print("Iteration: ", iteration)
+        print("Global best: ", best_particle_fitnes)
+        #print(global_best)
 
         iteration += 1
 
@@ -375,11 +366,11 @@ def main():
     # print(max, val_list)
 
     clauses, literals = w_clauses_from_file(os.path.abspath("examples/f600.cnf"))
-    PSO(clauses, literals, 20, w = 1, c1 = 2, c2 = 2,  max_iteration = 10)
+    PSO(clauses, literals, 20, w = 1, c1 = 2, c2 = 2,  max_iteration = 100)
 
-    print("Random:")
-    max, val_list = run_random("examples/f600.cnf", 400)
-    print(max, val_list)
+    #print("Random:")
+    #max, val_list = run_random("examples/input_sudoku.cnf", 500)
+    #print(max, val_list)
 
 if __name__ == "__main__":
     main()
