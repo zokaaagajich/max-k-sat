@@ -192,157 +192,6 @@ def simulated_annealing_algorithm(clauses, literals, num_of_iters):
 
     return (max, res_val_list)
 
-
-
-# PSO ALGORITHM
-
-"""
-Returns array of clauses with weights = 1
-[{'clause':[1,2,3], 'w':1}, {'clause':[-1,2], 'w':1}... ]
-and number of literals
-"""
-def w_clauses_from_file(filename):
-    clauses = []
-    with open(filename, "r") as fin:
-        #remove comments from beginning
-        line = fin.readline()
-        while(line.lstrip()[0] == 'c'):
-            line = fin.readline()
-
-        header = line.split(" ")
-        num_literals = int(header[2].rstrip())
-
-        lines = fin.readlines()
-        for line in lines:
-            line = line.split(" ")[:-1]
-            line = [int(x) for x in line]
-            clauses.append({'clause':line, 'w':1})
-
-        return (clauses, num_literals)
-
-"""
-Update clauses weight to identify the hard clauses
-"""
-def update_clauses_weight(clauses, best_particle):
-    for clause in clauses:
-        clause['w'] = clause['w'] + 1 - is_clause_satisfied(best_particle, clause['clause'])
-
-
-def sigmoid(velocity):
-    return 1.0/(1+math.exp(-velocity))
-
-
-def fitness_PSO(val_list, clauses_with_w):
-    return sum(map(lambda i: i['w'] * is_clause_satisfied(val_list, i['clause']), clauses_with_w))
-
-
-"""
-Initialize the population, positions and velocities
-"""
-def init_PSO(literals, num_particles, clauses):
-    n = 2**literals
-
-    swarm = []
-    for i in range(num_particles):
-        position = binary_list(randint(0, n-1), literals)
-        #initial velocities from -1 to 1
-        velocity = [2*random()-1 for x in range(literals)]
-
-        particle_map = {}
-        particle_map['position'] = position
-        particle_map['velocity'] = velocity
-        particle_map['best'] = particle_map['position']
-        swarm.append(particle_map)
-
-    #TODO remove print
-    #print("Init:")
-    #for particle in swarm:
-    #    print(particle)
-    #print(10*"-")
-
-    return swarm
-
-
-def satisfied_clauses(val_list, formula):
-    num_true_clauses = 0
-    for c in formula:
-        num_true_clauses += is_clause_satisfied(val_list, c['clause'])
-    return num_true_clauses
-
-
-def stop_condition(global_best, clauses, num_literals, iteration, max_iteration):
-    #TODO if fitness == num_literas
-    if satisfied_clauses(global_best, clauses) == num_literals or iteration > max_iteration:
-        return True
-    return False
-
-
-def PSO(clauses, literals, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
-    swarm = init_PSO(literals, num_particles, clauses)
-
-    iteration = 0
-    global_best = swarm[0]['position']
-    best_particle_fitnes = fitness_PSO(global_best, clauses)
-
-    while(not stop_condition(global_best, clauses, literals, iteration, max_iteration)):
-
-        for particle in swarm:
-            #Calculate fitness
-            particle_fitness = fitness_PSO(particle['position'], clauses)
-
-            #Save the individuals highest fitness (Pg)
-            #Update global best
-            if particle_fitness > best_particle_fitnes:
-                best_particle_fitnes = particle_fitness
-                global_best = particle['position']
-
-            #Modify velocities
-            r1 = random();
-            r2 = random();
-            new_velocity = []
-            for i in range(literals):
-                velocity_i = w*particle['velocity'][i] + c1*r1*(particle['best'][i] - particle['position'][i]) + c2*r2*(global_best[i] - particle['position'][i])
-                new_velocity.append(velocity_i)
-            particle['velocity'] = new_velocity
-
-
-            #Update the particles position
-            #TODO using flight
-            new_position = []
-            for i in range(literals):
-                r = random();
-                position_i = 1 if r < sigmoid(particle['velocity'][i]) else 0
-                new_position.append(position_i)
-            particle['position'] = new_position
-
-            #Update particle best
-            if fitness_PSO(particle['position'], clauses) > fitness_PSO(particle['best'], clauses):
-                particle['best'] = particle['position']
-
-            #Update global best
-            curr_fitness = fitness_PSO(particle['best'], clauses)
-            if curr_fitness > best_particle_fitnes:
-                best_particle_fitnes = curr_fitness
-                global_best = particle['best']
-
-            #print(particle)
-
-
-        update_clauses_weight(clauses, global_best)
-
-        #TODO remove
-        print("Iteration: ", iteration)
-        print("Global best: ", best_particle_fitnes)
-        #print(global_best)
-
-        iteration += 1
-
-    print("Solution:")
-    print(global_best)
-    print(satisfied_clauses(global_best, clauses))
-    print("In ", iteration, " iterations")
-
-
 def run_brute_force(filename):
     clauses, literals = clauses_from_file(os.path.abspath(filename))
     return brute_force_algorithm(clauses, literals)
@@ -356,17 +205,12 @@ def run_simulated_annealing(filename, num_of_iters):
     return simulated_annealing_algorithm(clauses, literals, num_of_iters)
 
 
-
-
 def main():
     # max, val_list = run_brute_force("examples/input_easy.cnf")
     # print(max, val_list)
 
     # max, val_list = run_simulated_annealing("examples/input_sudoku.cnf", 400)
     # print(max, val_list)
-
-    clauses, literals = w_clauses_from_file(os.path.abspath("examples/f600.cnf"))
-    PSO(clauses, literals, 20, w = 1, c1 = 2, c2 = 2,  max_iteration = 100)
 
     #print("Random:")
     #max, val_list = run_random("examples/input_sudoku.cnf", 500)
