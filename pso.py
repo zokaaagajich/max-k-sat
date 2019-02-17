@@ -202,9 +202,31 @@ class PSO:
         return False
 
 
-def main():
-    pso = PSO("../max-k-sat/examples/f600.cnf", num_particles = 20, max_iteration = 100, w = 1, c1 = 2, c2 = 2)
+    def local_search(self, particle, max_flip = 10):
+        improvement = 1
+        nbrflip = 0
 
+        while(improvement > 0 and nbrflip < max_flip):
+            improvement = 0
+            for i in range(self.num_literals):
+                gain_before = self.num_satisfied_clauses(particle.position)
+                #Flip the i-th variable of the particle
+                particle.position[i] = not particle.position[i]
+                nbrflip += 1
+                gain_after = self.num_satisfied_clauses(particle.position)
+
+                gain = gain_after - gain_before
+                if gain >= 0:
+                    #Accept flip
+                    improvement += gain
+                else:
+                    #Undo flip
+                    particle.position[i] = not particle.position[i]
+
+
+
+def run_PSO(path, num_particles = 20, max_iteration = 100, w = 1, c1 = 2, c2 = 2):
+    pso = PSO(path, num_particles, max_iteration, w, c1, c2)
     iteration = 1
     while(not pso.stop_condition(iteration)):
         #Calculate fitness
@@ -213,6 +235,9 @@ def main():
         pso.calc_fitness_and_global_best()
 
         for particle in pso.swarm:
+            #Flip heuristic TODO
+            #pso.local_search(particle)
+
             #Modify velocities
             pso.update_velocities(particle)
 
@@ -238,6 +263,10 @@ def main():
     print(pso.global_best)
     print(pso.num_satisfied_clauses(pso.global_best))
     print("In ", iteration, " iterations")
+
+
+def main():
+    run_PSO("../max-k-sat/examples/f600.cnf", num_particles = 20, max_iteration = 100, w = 1, c1 = 2, c2 = 2)
 
 
 if __name__ == "__main__":
