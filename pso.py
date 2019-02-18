@@ -3,7 +3,7 @@
 
 from random import randint, uniform, random
 from math import exp
-
+import argparse
 
 class Particle:
     """
@@ -50,6 +50,7 @@ class Particle:
             new_position.append(position_i)
         self.position = new_position
 
+
     def __str__(self):
         return "Position:\n" + str(self.position) + "\nVelocity:\n" + str(self.velocity) + "\nPersonal best:\n" + str(self.best)
 
@@ -75,6 +76,8 @@ class PSO:
 
             header = line.split(" ")
             num_literals = int(header[2].rstrip())
+            num_clauses = int(header[3].rstrip())
+
 
             lines = fin.readlines()
             for line in lines:
@@ -82,7 +85,7 @@ class PSO:
                 line = [int(x) for x in line]
                 clauses.append({'clause':line, 'w':1})
 
-            return (clauses, num_literals)
+            return (clauses, num_literals, num_clauses)
 
 
     def init_particles(self, num_particles, particle_size):
@@ -98,7 +101,7 @@ class PSO:
         Initialize the parameters, population, positions and velocities
         """
         #Read cnf formula from file
-        self.clauses, self.num_literals = self.w_clauses_from_file(filename)
+        self.clauses, self.num_literals, self.num_clauses = self.w_clauses_from_file(filename)
 
         #Parameters of PSO
         self.num_particles = num_particles
@@ -197,53 +200,57 @@ class PSO:
 
 
     def stop_condition(self, iteration):
-        if self.num_satisfied_clauses(self.global_best) == self.num_literals or iteration > self.max_iteration:
+        #self.num_satisfied_clauses(self.global_best) == self.num_literals
+        if iteration > self.max_iteration:
             return True
         return False
 
 
-    def local_search(self, particle, max_flip = 10):
+    def local_search(self, particle, max_flip):
         improvement = 1
         nbrflip = 0
 
         while(improvement > 0 and nbrflip < max_flip):
             improvement = 0
             for i in range(self.num_literals):
-                gain_before = self.num_satisfied_clauses(particle.position)
+                fit_before = self.fitness(particle.position)
                 #Flip the i-th variable of the particle
-                particle.position[i] = not particle.position[i]
+                particle.position[i] = 1 - particle.position[i]
                 nbrflip += 1
-                gain_after = self.num_satisfied_clauses(particle.position)
+                fit_after = self.fitness(particle.position)
 
-                gain = gain_after - gain_before
+                gain = fit_after - fit_before
                 if gain >= 0:
                     #Accept flip
                     improvement += gain
                 else:
                     #Undo flip
-                    particle.position[i] = not particle.position[i]
+                    particle.position[i] = 1 - particle.position[i]
 
 
 
-def run_PSO(path, num_particles = 20, max_iteration = 100, w = 1, c1 = 2, c2 = 2):
+def run_WPSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
     pso = PSO(path, num_particles, max_iteration, w, c1, c2)
-    iteration = 1
-    while(not pso.stop_condition(iteration)):
+    iteration = 0
+    num_satisfied_clauses = 0
+
+    #NOTE First condition - only if formula is satisfiable
+    while(not (num_satisfied_clauses == pso.num_clauses or iteration >= pso.max_iteration)):
+        iteration += 1
+
         #Calculate fitness
         #Save the individuals highest fitness (Pi)
         #Update global best
         pso.calc_fitness_and_global_best()
 
         for particle in pso.swarm:
-            #Flip heuristic TODO
-            #pso.local_search(particle)
-
             #Modify velocities
             pso.update_velocities(particle)
 
             #Update the particles position
             #TODO using flight
-            pso.update_positions(particle)
+            #pso.update_positions(particle)
+            pso.local_search(particle, max_flip)
 
             #Update particle best
             pso.update_personal_best(particle)
@@ -255,18 +262,37 @@ def run_PSO(path, num_particles = 20, max_iteration = 100, w = 1, c1 = 2, c2 = 2
 
         #TODO remove
         print("Iteration: ", iteration)
-        print("Global best fitness: ", pso.global_best_fitness)
+        num_satisfied_clauses = pso.num_satisfied_clauses(pso.global_best)
+        print("Satisfied clauses: ", num_satisfied_clauses)
+        print("Fitness: ", pso.global_best_fitness)
+        print(50*"-")
 
-        iteration += 1
 
     print("Solution:")
     print(pso.global_best)
-    print(pso.num_satisfied_clauses(pso.global_best))
+    print(num_satisfied_clauses)
     print("In ", iteration, " iterations")
 
 
 def main():
-    run_PSO("../max-k-sat/examples/f600.cnf", num_particles = 20, max_iteration = 100, w = 1, c1 = 2, c2 = 2)
+    #parsing arguments of command line
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', help = "path to input .cnf file")
+    parser.add_argument('--particles', nargs = '?', default = 20, type = int, help = "number of particles in generation")
+    parser.add_argument('--max_iter', nargs = '?', default = 1000, type = int, help = "maximal number of generations")
+    parser.add_argument('--max_flip', nargs = '?', default = 30000, type = int, help = "maximal number of flips in flip heuristic")
+    parser.add_argument('--w', nargs = '?', default = 1, type = float, help = "inertia factor")
+    parser.add_argument('--c1', nargs = '?', default = 1.7, type = float, help = "individual factor")
+    parser.add_argument('--c2', nargs = '?', default = 2.1, type = float, help = "social factor")
+    args = parser.parse_args()
+
+    run_WPSOSAT(path = args.path,
+            num_particles = args.particles,
+            max_iteration = args.max_iter,
+            max_flip = args.max_flip,
+            w = args.w,
+            c1 = args.c1,
+            c2 = args.c2)
 
 
 if __name__ == "__main__":
