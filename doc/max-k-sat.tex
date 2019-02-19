@@ -2,10 +2,15 @@
 \usepackage[utf8]{inputenc}
 \usepackage[serbian]{babel}
 \usepackage{listings}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[]{algorithm2e}
 
-\title{Rešavanje problema maksimalne k-zadovoljivosti.}
+\title{Rešavanje problema maksimalne k-zadovoljivosti\\ optimizacijom rojem čestica}
+
 \author{David Dimić\\ Zorana Gajić}
-\date{Mart 2019}
+
+\date{Mart 2019.}
 
 % text width and height
 \textwidth 16cm
@@ -15,7 +20,7 @@
 \voffset -1.5cm
 
 % distance from the left
-\hoffset 0cm
+\hoffset 0.5cm
 \oddsidemargin 0mm
 
 % distance from the bottom
@@ -30,14 +35,14 @@
 
 \section{Uvod}
 \section{Formulacija problema}
-U ovom radu, $n$  će predstavljati broj promenljivih a $m$ broj klauza u formuli. Data je formula $F$ u KNF obliku sa $n$ promenljivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. \\ 
+U ovom radu, $n$  će predstavljati broj promenjivih, a $m$ broj klauza u formuli. Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. \\ 
 
 Klauza $C_i$ dužine $k$ je disjunkcija $k$ literala: 
-$C_i = (x_1  \vee x_2 ... \vee x_k)$, gde je svaki literal promenljiva ili njegova negacija i može se pojavljivati više puta u izrazu.
-Cilj je pronaći valuaciju koja je vektor $v = (x_1, x_2, ..., x_n) \in \{ 0,1 \}^n$ koja maksimizuje broj zadovoljenih klauza u formuli $F$.
+$C_i = (x_1  \vee x_2 ... \vee x_k)$, gde je svaki literal promenjiva ili njegova negacija i može se pojavljivati više puta u izrazu.
+Cilj je pronaći valuaciju, odnosno vektor $v = (x_1, x_2, ..., x_n) \in \{ 0,1 \}^n$ koja maksimizuje broj zadovoljenih klauza u formuli $F$.
 
 
-\section{Optimizacija rojem čestica}
+\section{Optimizacija rojem čestica (PSO)}
 Optimizacija rojem čestica (Particle swarm optimization – PSO) je jedna od tehnika pretraživanja zasnovana na populaciji kao što je genetski algoritam, ali ne koriste evolutivne algoritme kao što su mutacija i ukrštanje.
 PSO algoritmi su 1995. godine uveli Kenedi i Eberhart kao alternativu standardnim genetskim algoritmima. \\
 
@@ -46,57 +51,77 @@ Optimizacija rojem čestica je algoritam zasnovan na ponašanju pojedinačnih je
 PSO pripada skupu algoritama koji se zasnivaju na inteligenciji roja (swarm intelligence). Algoritam radi nad skupom jedinki, koji se naziva rojem. Elementi ovog skupa se nazivaju česticama. 
 Svaka čestica predstavlja kandidatsko rešenje optimizacionog problema. Čestice se na unapred definisan način kreću po prostoru pretraživanja. Njihovo kretanje se usmerava imajući u vidu njihovu trenutnu poziciju, njihovu do sada najbolju poziciju, kao i do sada najbolju poziciju čitavog roja. Pod najboljom pozicijom čitavog roja se podrazumeva do sada najbolja pozicija, uzimajući u obzir sva njegova rešenja. Proces se ponavlja dok ne bude zadovoljen kriterijum zaustavljanja, a u svakoj iteraciji se ažurira najbolja vrednost rešenja za svaku česticu, kao i za roj u celini. \\
 
-Neka je dat roj sa $S$ čestica. Svaka čestica se sastoji od 3 elementa: \\
+Neka je dat roj sa $\vec{S}$ čestica. Svaka čestica se sastoji od tri elementa:
+\begin{list}{•}{}
+	\item Pozicija u prostoru za pretragu $\vec{x_i}$
+	\item Brzina, vektor $\vec{v_i}$
+	\item Sećanje, koje se koristi za skladištenje elitnih čestica globalne pretrage $\vec{P_g}$, kao i najboljih individualnih rešenja $\vec{P_i}$ koja su do sada pronašle zasebne čestice\\
+\end{list}
 
-1. Njegova pozicija u prostoru za pretragu \(x_i\).\\
+Nije neophodno da se u budućim populacijama nalazi bilo koji elitni pojedinac, iako svaka čestica u populaciji pokušava da bude blizu svog najboljeg rešenja i globalnog najboljeg rešenja. \\ 
 
-2. Njegova brzina, vektor \(v_i\). \\
 
-3. Njegovo sećanje, koje se koristi za skladištenje elitnih čestica globalne pretrage, kao i najboljih individualnih rešenja koja su do sada pronašle zasebne čestice.  \\
+Osnovni oblik PSO algoritma dat je sledećim samoažurirajućim jednačinama: \\ 
+\begin{equation}\label{eq:v}
+\vec{v_{i}}^{t+1} = w \cdot \vec{v_{i}}^{t} + c_1 \cdot \vec{r_1} \times (\vec{P_{i}}^{t} - \vec{x_{i}}^{t}) + c_2\cdot \vec{r_2} \times (\vec{P_{g}}^{t} - \vec{x_{i}}^{t}) 
+\end{equation}
 
-Nije neophodno da se u budućim populacijama nalazi bilo koji elitni pojedinac, iako svaka čestica u populaciji pokušava da bude blizu svog najboljeg rešenja i globalnog najboljeg rešenja.
-
-PSO se zasniva na samoažurirajućim jednačinama:  \\ 
-
-$$ v_{id}^{t+1} = w\cdot v_{id}^{t} + c_1 \cdot \psi _1(P_{id}^{t} - x_{id}^{t}) + c_2\cdot \psi _2(P_{gd}^{t} - x_{id}^{t}) $$
-
-$$ x_{id}^{t+1} = x_{id}^{t} + v_{id}^{t+1} $$
+\begin{equation}\label{eq:pos}
+\vec{x_{i}}^{t+1} = \vec{x_{i}}^{t} + \vec{v_{i}}^{t+1} 
+\end{equation}
 \newpage
 
-gde je: 
-\begin{list}{•}
-\item $v_{id}^{t}$ brzina $i$-te čestice u iteraciji $t$ 
-\item $ x_{id}^{t}$ pozicija $i$-te čestice u iteraciji $t$ 
-\item $w$ inercija
-\item $c_1, c_2$ faktori učenja
-\item $\psi_1, \psi_2$ pseudoslučajni faktori iz intervala $[0,1]$
-\item $P_i$ najbolja individualno rešenje čestice $i$
-\item $P_g$ trenutno najbolje globalno rešenje 
-\end{list} 
- 
-Umesto jednačine za ažuriranje pozicije, pošto je diskretan problem, a izračunata brzina je realan broj primenjujemo sigmoidnu transformaciju na izračunatu brzinu i primenjujemo sledeće jednačine:  \\
+Jednačina \ref{eq:v} opisuje kako se ažurira brzina $i$-te čestice, a \ref{eq:pos} koja je sledeća pozicija $i$-te čestice, pri čemu je: 
 
-% TODO sigmoid 
+\begin{list}{•}{}
+	\item $w$ - faktor inercije
+	\item $c_1, c_2$ - faktori učenja: kognitivna i socijalna
+	\item $\vec{v_{id}}^{t}$ - brzina $i$-te čestice u iteraciji $t$ 
+	\item $\vec{x_{id}}^{t}$ - pozicija $i$-te čestice u iteraciji $t$ 
+	\item $\vec{r_1}, \vec{r_2}$ - pseudoslučajni brojevi iz uniformnog intervala $[0,1]$
+	\item $\vec{P_i}$ - najbolje individualno rešenje čestice $i$
+	\item $\vec{P_g}$ - trenutno najbolje globalno rešenje\\ 
+\end{list}
+
+Kako je max k-SAT problem diskretan potrebno je prilagoditi jednačinu \ref{eq:pos}. Izračunata brzina $\vec{v_{i}}$ je iz $\mathbb{R}^n$, pa je potrebno da se svede na $\{ 0,1 \}^n$. Jedan predlog za ažuriranje položaja čestice, izložen u radu \cite{sigmoid}, dat je sigmoidnom transformacijom. Sada ${v_{i}}^{t}$ predstavlja verovatnoću da bit $x_{i}^{t}$ uzme vrednost 1.  \\
+
+\begin{equation}
+x_{i}^{t}=\begin{cases}
+               1, rand(0,1) < sigmoid(v_{i}^{t})\\
+               0, inace\\
+            \end{cases}
+\end{equation}
+\begin{equation}
+sigmoid(v_{i}^{t}) = \frac{1}{1+e^{-v_{i}^{t}}}
+\end{equation}
+ 
  
 \subsection{Pseudokod PSO}
-Ulaz: Formula u KNF-u. \
 
-Izlaz: Najbolja procenjena valuacija, broj zadovoljenih klauza.\\
+\begin{algorithm}[H]
+\SetAlgoLined
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
 
-Algoritam:\
-
-\begin{enumerate}
-\item Inicijalizacija populacije: pozicije i brzine
-\item Izračunati fitnes funkciju za svaku česticu $P_i$
-\item Primeni mutaciju flip heuristikom
-\item Sačuvaj individualni najbolji rezultat kao globalni $P_g$
-\item Ažuriraj brzine na osnovu $P_i$ i $P_g$
-\item Ažuriraj pozicije
-\item Ažuriraj individualni najbolji rezultat
-\item Ažuriraj globalni rezultat
-\item Zaustaviti ako je zadovoljen kriterijum zaustavljanja
-\item Idi na korak 2
-\end{enumerate}
+\Input{Formula $F$ u KNF-u, $n$ i $m$}
+\Output{Najbolja procenjena valuacija i broj zadovoljenih klauza}
+\BlankLine
+ inicijalizacija populacije: pozicije i brzine\;
+ t = 0; \tcp*[h]{tekuca iteracija}\\
+ \While{nije zadovoljen uslov zaustavljanja}{
+  t = t + 1\;
+  \For{$i\leftarrow 0$ \KwTo broj cestica u roju}{
+  	Izračunaj $Fitness$($\vec{P_i^t}$)\;
+ 	Primeni mutaciju\;
+  	Sačuvaj individualni najbolji rezultat kao globalni $\vec{P_g}$\;
+  	Ažuriraj brzine na osnovu $\vec{P_i}$ i $\vec{P_g}$\;
+  	Ažuriraj pozicije $\vec{v_i^t}$\;
+  	Ažuriraj individualni najbolji rezultat $\vec{P_i}$\;
+  	Ažuriraj globalni najbolji rezultat $\vec{P_g}$\;
+  }
+ }
+ \caption{Uopšteni PSO algoritam}
+\end{algorithm}
 
 
 \subsection{Reprezentacija rešenja}
@@ -117,7 +142,7 @@ def __init__(self, num_literals):
 
 \subsection{Fitnes funkcija}
 Fitnes funkcija je veoma važna za perfomanse algoritma.
-Prva fitnes funkcija koja se sama nameće jeste broj zadovoljenih klauza. Ali se ona nije pokazala kao dobra, pa je korišćen mehanizam stepenastog ažuriranja težina (stepwise adaptation weights) uvedena od strane Eiben-a [1].
+Prva fitnes funkcija koja se sama nameće jeste broj zadovoljenih klauza. Ali se ona nije pokazala kao dobra, pa je korišćen mehanizam stepenastog ažuriranja težina (stepwise adaptation weights) uvedena od strane Eiben-a \cite{fitnes}.
 Fitnes funkcija je data sledećom formulama:
 $$ Fitness(x) = \sum_{i=1}^{m} W_iC_i(x)$$
 
@@ -158,8 +183,9 @@ Korišćena je kombinacija 2 kriterijuma: ako je dostignut maksimalan broj unapr
 
 \newpage
 \begin{thebibliography}{9}
-\bibitem{} Gottlieb J, and Voss N. “Adaptive fitness functions for the satisfiability problem”. In: Parallel Problem Solving from Nature - PPSN VI 6th International Conference, Paris, France. Springer Verlag. LNCS 1917, 2000.
-\bibitem{} Abdesslem Layeb, "A particle swarm algorithm for solving the maximum satisfiability problem", MISC Lab., Computer science department, University mentouri of Constantine, Algeria
+\bibitem{sigmoid}Kennedy J, Eberhart RC. “A discrete binary version of the particle swarm algorithm,” In: Proceedings of IEEE conference on systems, man and cybernetics , p. 4104–4109, 1997.
+\bibitem{fitnes} Gottlieb J, and Voss N. “Adaptive fitness functions for the satisfiability problem”. In: Parallel Problem Solving from Nature - PPSN VI 6th International Conference, Paris, France. Springer Verlag. LNCS 1917, 2000.
+\bibitem{} Abdesslem Layeb, “A particle swarm algorithm for solving the maximum satisfiability problem”, MISC Lab., Computer science department, University mentouri of Constantine, Algeria
 \end{thebibliography}
 
 \end{document}

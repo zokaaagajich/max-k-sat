@@ -26,10 +26,10 @@ class Particle:
         """
         Update particle velocity
         """
-        r1 = random()
-        r2 = random()
         new_velocity = []
         for i in range(self.num_literals):
+            r1 = random()
+            r2 = random()
             new_velocity.append( w*self.velocity[i] + c1*r1*(self.best[i] - self.position[i]) + c2*r2*(global_best[i] - self.position[i]) )
         self.velocity = new_velocity
 
@@ -43,9 +43,9 @@ class Particle:
         Update the particle position
         """
         #TODO using flight
-        r = random()
         new_position = []
         for i in range(self.num_literals):
+            r = random()
             position_i = 1 if r < self.sigmoid(self.velocity[i]) else 0
             new_position.append(position_i)
         self.position = new_position
@@ -181,6 +181,12 @@ class PSO:
             self.global_best = particle.best
 
 
+    def update_global_best_ring(self, particle, neighbor_particle):
+        fitness_p = self.fitness(particle.best)
+        fitness_n = self.fitness(neighbor_particle.best)
+        (self.global_best, self.global_best_fitness) = (particle.best, fitness_p) if fitness_p > fitness_n else (neighbor_particle.best, fitness_n)
+
+
     def update_clauses_weight(self):
         """
         Update clauses weight to identify the hard clauses
@@ -243,7 +249,7 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
         #Update global best
         pso.calc_fitness_and_global_best()
 
-        for particle in pso.swarm:
+        for i, particle in enumerate(pso.swarm):
             #Modify velocities
             pso.update_velocities(particle)
 
@@ -256,7 +262,9 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
             pso.update_personal_best(particle)
 
             #Update global best
-            pso.update_global_best(particle)
+            #pso.update_global_best(particle)
+            #Topology ring size 1
+            pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
 
         pso.update_clauses_weight()
 
