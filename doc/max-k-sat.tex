@@ -35,12 +35,15 @@
 
 \section{Uvod}
 \section{Formulacija problema}
-U ovom radu, $n$  će predstavljati broj promenjivih, a $m$ broj klauza u formuli. Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. \\ 
+Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. Problem maksimalne k-zadovoljivosti može se definisati na sledeći način:\\ 
 
 Klauza $C_i$ dužine $k$ je disjunkcija $k$ literala: 
 $C_i = (x_1  \vee x_2 ... \vee x_k)$, gde je svaki literal promenjiva ili njegova negacija i može se pojavljivati više puta u izrazu.
-Cilj je pronaći valuaciju, odnosno vektor $v = (x_1, x_2, ..., x_n) \in \{ 0,1 \}^n$ koja maksimizuje broj zadovoljenih klauza u formuli $F$.
+Cilj je pronaći istinitosne vrednosti promenjivih, valuaciju koja je vektor $\vec{v} = (x_1, x_2, ..., x_n) \in \{ 0,1 \}^n$ tako da ova valuacija maksimizuje broj zadovoljenih klauza u formuli $F$. 
 
+Ako valuacija zadovoljava formulu, onda se ona naziva modelom formule. Max k-SAT problem može se definisati parom $(\Omega, SC)$, gde je $\Omega$ skup svih potencijalnih rešenja iz $\{0,1\}^n$, a $SC:\Omega \rightarrow N$, skor valuacije koji je jednak broju zadovoljenih klauza. Shodno ovome, problem max k-SAT je naći $\vec{v} \in \Omega$ za koje je $SC$ maksimalno:
+$$\max_{\vec{v} \in \Omega}\{SC(\vec{v})\}$$
+Očigledno ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. Problem max k-SAT je NP-kompletan za svako $k>2$.
 
 \section{Optimizacija rojem čestica (PSO)}
 Optimizacija rojem čestica (Particle swarm optimization – PSO) je jedna od tehnika pretraživanja zasnovana na populaciji kao što je genetski algoritam, ali ne koriste evolutivne algoritme kao što su mutacija i ukrštanje.
@@ -69,7 +72,6 @@ Osnovni oblik PSO algoritma dat je sledećim samoažurirajućim jednačinama: \\
 \begin{equation}\label{eq:pos}
 \vec{x_{i}}^{t+1} = \vec{x_{i}}^{t} + \vec{v_{i}}^{t+1} 
 \end{equation}
-\newpage
 
 Jednačina \ref{eq:v} opisuje kako se ažurira brzina $i$-te čestice, a \ref{eq:pos} koja je sledeća pozicija $i$-te čestice, pri čemu je: 
 
@@ -85,12 +87,12 @@ Jednačina \ref{eq:v} opisuje kako se ažurira brzina $i$-te čestice, a \ref{eq
 
 Kako je max k-SAT problem diskretan potrebno je prilagoditi jednačinu \ref{eq:pos}. Izračunata brzina $\vec{v_{i}}$ je iz $\mathbb{R}^n$, pa je potrebno da se svede na $\{ 0,1 \}^n$. Jedan predlog za ažuriranje položaja čestice, izložen u radu \cite{sigmoid}, dat je sigmoidnom transformacijom. Sada ${v_{i}}^{t}$ predstavlja verovatnoću da bit $x_{i}^{t}$ uzme vrednost 1.  \\
 
-\begin{equation}
+\begin{equation}\label{eq:posSIGMOID}
 x_{i}^{t}=\begin{cases}
                1, rand(0,1) < sigmoid(v_{i}^{t})\\
                0, inace\\
             \end{cases}
-\end{equation}
+\end{equation}\label{eq:sigmoid}
 \begin{equation}
 sigmoid(v_{i}^{t}) = \frac{1}{1+e^{-v_{i}^{t}}}
 \end{equation}
@@ -112,7 +114,6 @@ sigmoid(v_{i}^{t}) = \frac{1}{1+e^{-v_{i}^{t}}}
   t = t + 1\;
   \For{$i\leftarrow 0$ \KwTo broj cestica u roju}{
   	Izračunaj $Fitness$($\vec{P_i^t}$)\;
- 	Primeni mutaciju\;
   	Sačuvaj individualni najbolji rezultat kao globalni $\vec{P_g}$\;
   	Ažuriraj brzine na osnovu $\vec{P_i}$ i $\vec{P_g}$\;
   	Ažuriraj pozicije $\vec{v_i^t}$\;
@@ -125,60 +126,72 @@ sigmoid(v_{i}^{t}) = \frac{1}{1+e^{-v_{i}^{t}}}
 
 
 \subsection{Reprezentacija rešenja}
-Za dobar algoritam je takođe važno dobro predstavljanje rešenja. Postoje više načina reprezentacija, ali je ovde odabran prirodna binarna reprezentacija. Svaka čestica je predstavljena binarnim nizom dužine broja literala, odnosno $n$.
+Za dobar algoritam je takođe važno dobro predstavljanje rešenja. Postoje više načina reprezentacija, ali je ovde odabran prirodna binarna reprezentacija. Svaka čestica je predstavljena binarnim nizom dužine $n$.
 
 
 \subsection{Inicijalizacija}
-Inicijalizacija je krajnje jednostavna. Vektor pozicije svake čestice inicijalizujemo slučajnim odabirom vrednosti 0 i 1.  Vektor brzine može uzimati vrednosti od $[-1,1]$.
+Potrebno je inicijalizovati pozicije čestica i vektora brzine. Pozicije su inicijalizovane pseudo-slučajnim brojevima $\{0,1\}$, a vektor brzine realnim brojevima iz intervala $[-V_{min}, V_{max}]$, gde su granice intervala jedan od parametara PSO algoritma.
 
-\begin{lstlisting}
-def __init__(self, num_literals):
-        self.num_literals = num_literals
-        self.position = [randint(0,1) for x in range(num_literals)]
-        self.best = self.position
-        self.velocity = [2*random()-1 for x in range(num_literals)]
-        self.fitness = float("-inf")
-\end{lstlisting}
 
 \subsection{Fitnes funkcija}
 Fitnes funkcija je veoma važna za perfomanse algoritma.
-Prva fitnes funkcija koja se sama nameće jeste broj zadovoljenih klauza. Ali se ona nije pokazala kao dobra, pa je korišćen mehanizam stepenastog ažuriranja težina (stepwise adaptation weights) uvedena od strane Eiben-a \cite{fitnes}.
-Fitnes funkcija je data sledećom formulama:
-$$ Fitness(x) = \sum_{i=1}^{m} W_iC_i(x)$$
+Prva fitnes funkcija koja se sama nameće jeste broj zadovoljenih klauza. Ova funkcija se nije pokazala kao dovoljno dobra, a bolji mehanizam je stepenasto ažuriranje težina (SAW - stepwise adaptation weights) uvedena od strane Eiben-a \cite{fitnes}. Fitnes funkcija je data sledećom formulama:
 
-$$ W_{i+1} = W_{i} + 1 - C_i(x^*) $$
-Svaka klauza $C_i$ ima težinu $W_i$. Ova funkcija ima za cilj identifikovanje težih klauza u procesu učenja koja je predstavljena većom vrednošću $W_i$. Na početku su težine inicijalizovane na 1, pa se potom ažuriraju.
-$x^*$ je tekuće najbolje rešenje.
+\begin{equation}\label{eq:SAW}
+FitnessSAW(x) = \sum_{i=1}^{m} W_iC_i(x)
+\end{equation}
+
+\begin{equation}\label{eq:wForSAW}
+W_{i+1} = W_{i} + 1 - C_i(x^*)
+\end{equation}
+
+Svakoj klauzi $C_i$ dodeljuje se težina $W_i$. Ova funkcija ima za cilj identifikovanje težih klauza u procesu učenja koja je predstavljena većom vrednošću $W_i$. Na početku su težine inicijalizovane na 1, pa se potom ažuriraju jednačinom \ref{eq:wForSAW}. $x^*$ je tekuće najbolje rešenje.
 
 
 \subsection{Lokalna pretraga i flip heuristika}
- % TODO
- 
-\subsection{Ažuriranje brzine i pozicije čestica}
-\begin{lstlisting}
-    def update_velocity(self, global_best, w, c1, c2):
-        r1 = random()
-        r2 = random()
-        new_velocity = []
-        for i in range(self.num_literals):
-            new_velocity.append( w*self.velocity[i] + c1*r1*(self.best[i] - self.position[i]) + c2*r2*(global_best[i] - self.position[i]) )
-        self.velocity = new_velocity
-\end{lstlisting}
+Da bi se unapredio standardni PSO algoritam uvedena je, umesto ažuriranja pozicija jednačinom \ref{eq:posSIGMOID}, stohastička lokalna pretraga flip heuristikom.\\
+%TODO
 
-\begin{lstlisting}
-    def update_position(self):
-        r = random()
-        new_position = []
-        for i in range(self.num_literals):
-            position_i = 1 if r < self.sigmoid(self.velocity[i]) else 0
-            new_position.append(position_i)
-        self.position = new_position
-\end{lstlisting}
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{pozicija čestice $p$, Formula $F$ u KNF-u, maxFlip}
+\Output{nova pozicija čestice $p$}
+\BlankLine
+ improvement = 1\;
+ numFlip = 0\;
+ \While{$improvement > 0$ and $numFlip < maxFlip$}{
+  improvement = 0\;
+  \For{$i\leftarrow 0$ \KwTo n}{
+  	flip p[i]\;
+  	numFlip += 1\;
+  	Izračunaj dobit: gain\;
+  	\If{$gain>=0$}{
+		prihvati flip\;  	
+  	}
+  	\Else {
+		odbaci flip, vrati na staru vrednost $p[i]$\; 
+  	}
+
+  }
+ }
+ \caption{Funkcija lokalne pretrage}
+\end{algorithm}
+
 
 \subsection{Kriterijum zaustavljanja}
-Korišćena je kombinacija 2 kriterijuma: ako je dostignut maksimalan broj unapred zadatih iteracija ili ako je broj zadovoljenih klauza maksimalan, odnosno broj $m$.
+Jedini kriterijumi zaustavljanja koji se mogu koristiti u opštem slučaju su: da li je dostignut maksimalan broj unapred zadatih iteracija ili, da li u poslednjih nekoliko iteracija nema značajnog napretka.
+Ali, u test primerima za koje unapred znamo da je formula zadovoljiva, možemo koristiti i kriterijum da je broj zadovoljenih klauza dostigao ukupan broj klauza $m$.
+
+\subsection{Varijante PSO algoritma}
+%TODO
 
 \subsection{Rezultati}
+%TODO
+
 
 
 \newpage
