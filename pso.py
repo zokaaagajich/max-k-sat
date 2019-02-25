@@ -42,7 +42,6 @@ class Particle:
         """
         Update the particle position
         """
-        #TODO using flight
         new_position = []
         for i in range(self.num_literals):
             r = random()
@@ -147,10 +146,10 @@ class PSO:
         return sum(map(lambda i: i['w'] * self.is_clause_satisfied(valuation, i['clause']), self.clauses))
 
 
-    def calc_fitness_and_global_best(self):
+    def calc_fitness_and_global_best(self, fitness):
         for particle in self.swarm:
             #Evaluate the fitness of the each particle (Pi)
-            particle.fitness = self.fitness(particle.position)
+            particle.fitness = fitness(particle.position)
 
             #Save the individuals highest fitness (Pg)
             #Update global best
@@ -167,15 +166,15 @@ class PSO:
         particle.update_position()
 
 
-    def update_personal_best(self, particle):
-        p_best_fit = self.fitness(particle.best)
+    def update_personal_best(self, particle, fitness):
+        p_best_fit = fitness(particle.best)
         if particle.fitness > p_best_fit:
             particle.fitness = p_best_fit
             particle.best = particle.position
 
 
-    def update_global_best(self, particle):
-        curr_fitness = self.fitness(particle.best)
+    def update_global_best(self, particle, fitness):
+        curr_fitness = fitness(particle.best)
         if curr_fitness > self.global_best_fitness:
             self.global_best_fitness = curr_fitness
             self.global_best = particle.best
@@ -212,18 +211,18 @@ class PSO:
         return False
 
 
-    def local_search(self, particle, max_flip):
+    def local_search(self, particle, max_flip, fitness):
         improvement = 1
         nbrflip = 0
 
         while(improvement > 0 and nbrflip < max_flip):
             improvement = 0
             for i in range(self.num_literals):
-                fit_before = self.fitness(particle.position)
+                fit_before = fitness(particle.position)
                 #Flip the i-th variable of the particle
                 particle.position[i] = 1 - particle.position[i]
                 nbrflip += 1
-                fit_after = self.fitness(particle.position)
+                fit_after = fitness(particle.position)
 
                 gain = fit_after - fit_before
                 if gain >= 0:
@@ -233,6 +232,84 @@ class PSO:
                     #Undo flip
                     particle.position[i] = 1 - particle.position[i]
 
+
+def run_PSO_LS(path, num_particles, max_iteration, max_flip, w, c1, c2):
+    """
+    PSO with flight operation based on sigmoid transformation
+    """
+    pso = PSO(path, num_particles, max_iteration, w, c1, c2)
+    iteration = 0
+    num_satisfied_clauses = 0
+
+    #NOTE First condition - only if formula is satisfiable
+    while(not (num_satisfied_clauses == pso.num_clauses or iteration >= pso.max_iteration)):
+        iteration += 1
+
+        #Calculate fitness
+        #Save the individuals highest fitness (Pi)
+        #Update global best
+        pso.calc_fitness_and_global_best(pso.fitness)
+
+        for i, particle in enumerate(pso.swarm):
+            #Modify velocities
+            pso.update_velocities(particle)
+
+            #Update the particles position
+            pso.update_positions(particle)
+
+            #Update particle best
+            pso.update_personal_best(particle, pso.fitness)
+
+            #Update global best
+            pso.update_global_best(particle, pso.fitness)
+            #Topology ring size 1
+            #pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
+
+        pso.update_clauses_weight()
+
+        print("Iteration: ", iteration)
+        num_satisfied_clauses = pso.num_satisfied_clauses(pso.global_best)
+        print("Satisfied clauses: ", num_satisfied_clauses)
+        print("Fitness: ", pso.global_best_fitness)
+        print()
+
+    return (pso.global_best, num_satisfied_clauses, iteration)
+
+
+def run_PSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
+    """
+    PSO with the standard objective function - number of satisfied clauses
+    """
+    #TODO
+    pso = PSO(path, num_particles, max_iteration, w, c1, c2)
+    iteration = 0
+
+    #NOTE First condition - only if formula is satisfiable
+    while(not (pso.global_best_fitness == pso.num_clauses or iteration >= pso.max_iteration)):
+        iteration += 1
+
+        #Calculate fitness
+        #Save the individuals highest fitness (Pi)
+        #Update global best
+        pso.calc_fitness_and_global_best(pso.num_satisfied_clauses)
+
+        for i, particle in enumerate(pso.swarm):
+            #Update the particles position
+            pso.local_search(particle, max_flip, pso.num_satisfied_clauses)
+
+            #Update particle best
+            pso.update_personal_best(particle, pso.num_satisfied_clauses)
+
+            #Update global best
+            pso.update_global_best(particle, pso.num_satisfied_clauses)
+            #Topology ring size 1
+            #pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
+
+        print("Iteration: ", iteration)
+        print("Satisfied clauses: ", pso.global_best_fitness)
+        print()
+
+    return (pso.global_best, pso.global_best_fitness, iteration)
 
 
 def run_WPSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
@@ -247,60 +324,77 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
         #Calculate fitness
         #Save the individuals highest fitness (Pi)
         #Update global best
-        pso.calc_fitness_and_global_best()
+        pso.calc_fitness_and_global_best(pso.fitness)
 
         for i, particle in enumerate(pso.swarm):
-            #Modify velocities
-            pso.update_velocities(particle)
-
             #Update the particles position
-            #TODO using flight
-            #pso.update_positions(particle)
-            pso.local_search(particle, max_flip)
+            pso.local_search(particle, max_flip, pso.fitness)
 
             #Update particle best
-            pso.update_personal_best(particle)
+            pso.update_personal_best(particle, pso.fitness)
 
             #Update global best
-            #pso.update_global_best(particle)
+            pso.update_global_best(particle, pso.fitness)
             #Topology ring size 1
-            pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
+            #pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
 
         pso.update_clauses_weight()
 
-        #TODO remove
         print("Iteration: ", iteration)
         num_satisfied_clauses = pso.num_satisfied_clauses(pso.global_best)
         print("Satisfied clauses: ", num_satisfied_clauses)
         print("Fitness: ", pso.global_best_fitness)
-        print(50*"-")
+        print()
 
+    return (pso.global_best, num_satisfied_clauses, iteration)
 
-    print("Solution:")
-    print(pso.global_best)
-    print(num_satisfied_clauses)
-    print("In ", iteration, " iterations")
 
 
 def main():
     #parsing arguments of command line
     parser = argparse.ArgumentParser()
     parser.add_argument('path', help = "path to input .cnf file")
-    parser.add_argument('--particles', nargs = '?', default = 20, type = int, help = "number of particles in generation")
-    parser.add_argument('--max_iter', nargs = '?', default = 1000, type = int, help = "maximal number of generations")
-    parser.add_argument('--max_flip', nargs = '?', default = 30000, type = int, help = "maximal number of flips in flip heuristic")
-    parser.add_argument('--w', nargs = '?', default = 1, type = float, help = "inertia factor")
-    parser.add_argument('--c1', nargs = '?', default = 1.7, type = float, help = "individual factor")
-    parser.add_argument('--c2', nargs = '?', default = 2.1, type = float, help = "social factor")
+    parser.add_argument('algorithm', choices=['psols','psosat','wpsosat'], help = "Choose an algorithm to run")
+    parser.add_argument('-p', '--particles', nargs = '?', default = 20, type = int, help = "number of particles in generation. Default 20")
+    parser.add_argument('-i', '--maxIter', nargs = '?', default = 1000, type = int, help = "maximal number of generations. Default 1000")
+    parser.add_argument('-f', '--maxFlip', nargs = '?', default = 30000, type = int, help = "maximal number of flips in flip heuristic. Default 30000")
+    parser.add_argument('-w', '--inertia', nargs = '?', default = 1, type = float, help = "inertia factor. Default 1")
+    parser.add_argument('-c1', '--individual', nargs = '?', default = 1.7, type = float, help = "individual factor. Default 1.7")
+    parser.add_argument('-c2', '--social', nargs = '?', default = 2.1, type = float, help = "social factor. Default 2.1")
     args = parser.parse_args()
 
-    run_WPSOSAT(path = args.path,
-            num_particles = args.particles,
-            max_iteration = args.max_iter,
-            max_flip = args.max_flip,
-            w = args.w,
-            c1 = args.c1,
-            c2 = args.c2)
+
+    if (args.algorithm == "psols"):
+        solution, satisfied_clauses, iteration = run_PSO_LS(path = args.path,
+                num_particles = args.particles,
+                max_iteration = args.maxIter,
+                max_flip = args.maxFlip,
+                w = args.inertia,
+                c1 = args.individual,
+                c2 = args.social)
+
+    if (args.algorithm == "psosat"):
+        solution, satisfied_clauses, iteration = run_PSOSAT(path = args.path,
+                num_particles = args.particles,
+                max_iteration = args.maxIter,
+                max_flip = args.maxFlip,
+                w = args.inertia,
+                c1 = args.individual,
+                c2 = args.social)
+
+    if (args.algorithm == "wpsosat"):
+        solution, satisfied_clauses, iteration = run_WPSOSAT(path = args.path,
+                num_particles = args.particles,
+                max_iteration = args.maxIter,
+                max_flip = args.maxFlip,
+                w = args.inertia,
+                c1 = args.individual,
+                c2 = args.social)
+
+    print("Solution:")
+    print(solution)
+    print("Satisfied clauses: ", satisfied_clauses)
+    print("In ", iteration, " iterations")
 
 
 if __name__ == "__main__":
