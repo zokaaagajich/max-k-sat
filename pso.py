@@ -94,7 +94,7 @@ class PSO:
         return swarm
 
 
-    def __init__(self, filename, num_particles, max_iteration, w = 1, c1 = 2, c2 = 2):
+    def __init__(self, filename, num_particles, max_iteration, w, c1, c2):
         """
         Read cnf from file and
         Initialize the parameters, population, positions and velocities
