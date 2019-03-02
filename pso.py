@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from random import randint, uniform, random
+from random import randint, uniform, random, sample
 from math import exp
 import argparse
 
@@ -94,7 +94,7 @@ class PSO:
         return swarm
 
 
-    def __init__(self, filename, num_particles, max_iteration, w, c1, c2):
+    def __init__(self, filename, num_particles, max_iteration, maxFlip, maxTabuSize, w, c1, c2):
         """
         Read cnf from file and
         Initialize the parameters, population, positions and velocities
@@ -108,6 +108,11 @@ class PSO:
         self.w = w
         self.c1 = c1
         self.c2 = c2
+        self.max_flip = maxFlip
+
+        #Tabu list parameters
+        self.tabuList = []
+        self.maxTabuSize = maxTabuSize
 
         #Initialize particles
         self.swarm = self.init_particles(self.num_particles, self.num_literals)
@@ -211,11 +216,14 @@ class PSO:
         return False
 
 
-    def local_search(self, particle, max_flip, fitness):
+    def local_search(self, particle, fitness):
         improvement = 1
         nbrflip = 0
 
-        while(improvement > 0 and nbrflip < max_flip):
+        while(  improvement > 0
+                and nbrflip < self.max_flip
+                and particle.position not in self.tabuList):
+
             improvement = 0
             for i in range(self.num_literals):
                 fit_before = fitness(particle.position)
@@ -229,15 +237,58 @@ class PSO:
                     #Accept flip
                     improvement += gain
                 else:
+                    #There is no improvement
                     #Undo flip
                     particle.position[i] = 1 - particle.position[i]
+
+            if improvement == 0:
+                #If no improvement add this solution to tabu list
+                self.tabuList.append(particle.position)
+                if len(self.tabuList) > self.maxTabuSize:
+                    del self.tabuList[0]
+
+
+    def local_search_random_k(self, particle, fitness, k):
+        """
+        Local search that doesn't flip every bit of particle,
+        but only randomly chosen k % of particle length
+        """
+        improvement = 1
+        nbrflip = 0
+
+        while(  improvement > 0
+                and nbrflip < self.max_flip
+                and particle.position not in self.tabuList):
+
+            improvement = 0
+            for i in sample(range(self.num_literals), int(self.num_literals*k)):
+                fit_before = fitness(particle.position)
+                #Flip the i-th variable of the particle
+                particle.position[i] = 1 - particle.position[i]
+                nbrflip += 1
+                fit_after = fitness(particle.position)
+
+                gain = fit_after - fit_before
+                if gain >= 0:
+                    #Accept flip
+                    improvement += gain
+                else:
+                    #There is no improvement
+                    #Undo flip
+                    particle.position[i] = 1 - particle.position[i]
+
+            if improvement == 0:
+                #If no improvement add this solution to tabu list
+                self.tabuList.append(particle.position)
+                if len(self.tabuList) > self.maxTabuSize:
+                    del self.tabuList[0]
 
 
 def run_PSO_LS(path, num_particles, max_iteration, max_flip, w, c1, c2):
     """
     PSO with flight operation based on sigmoid transformation
     """
-    pso = PSO(path, num_particles, max_iteration, w, c1, c2)
+    pso = PSO(path, num_particles, max_iteration, max_flip, 0, w, c1, c2)
     iteration = 0
     num_satisfied_clauses = 0
 
@@ -276,12 +327,12 @@ def run_PSO_LS(path, num_particles, max_iteration, max_flip, w, c1, c2):
     return (pso.global_best, num_satisfied_clauses, iteration)
 
 
-def run_PSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
+def run_PSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1, c2):
     """
     PSO with the standard objective function - number of satisfied clauses
     """
     #TODO
-    pso = PSO(path, num_particles, max_iteration, w, c1, c2)
+    pso = PSO(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1, c2)
     iteration = 0
 
     #NOTE First condition - only if formula is satisfiable
@@ -295,7 +346,7 @@ def run_PSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
 
         for i, particle in enumerate(pso.swarm):
             #Update the particles position
-            pso.local_search(particle, max_flip, pso.num_satisfied_clauses)
+            pso.local_search(particle, pso.num_satisfied_clauses)
 
             #Update particle best
             pso.update_personal_best(particle, pso.num_satisfied_clauses)
@@ -312,8 +363,8 @@ def run_PSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
     return (pso.global_best, pso.global_best_fitness, iteration)
 
 
-def run_WPSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
-    pso = PSO(path, num_particles, max_iteration, w, c1, c2)
+def run_WPSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1, c2):
+    pso = PSO(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1, c2)
     iteration = 0
     num_satisfied_clauses = 0
 
@@ -328,7 +379,7 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, w, c1, c2):
 
         for i, particle in enumerate(pso.swarm):
             #Update the particles position
-            pso.local_search(particle, max_flip, pso.fitness)
+            pso.local_search_random_k(particle, pso.fitness, 0.45)
 
             #Update particle best
             pso.update_personal_best(particle, pso.fitness)
@@ -357,6 +408,7 @@ def main():
     parser.add_argument('algorithm', choices=['psols','psosat','wpsosat'], help = "Choose an algorithm to run")
     parser.add_argument('-p', '--particles', nargs = '?', default = 20, type = int, help = "number of particles in generation. Default 20")
     parser.add_argument('-i', '--maxIter', nargs = '?', default = 1000, type = int, help = "maximal number of generations. Default 1000")
+    parser.add_argument('-t', '--maxTabuSize', nargs = '?', default = 500, type = int, help = "maximal number of elements in tabu list. Default 500")
     parser.add_argument('-f', '--maxFlip', nargs = '?', default = 30000, type = int, help = "maximal number of flips in flip heuristic. Default 30000")
     parser.add_argument('-w', '--inertia', nargs = '?', default = 1, type = float, help = "inertia factor. Default 1")
     parser.add_argument('-c1', '--individual', nargs = '?', default = 1.7, type = float, help = "individual factor. Default 1.7")
@@ -378,6 +430,7 @@ def main():
                 num_particles = args.particles,
                 max_iteration = args.maxIter,
                 max_flip = args.maxFlip,
+                maxTabuSize = args.maxTabuSize,
                 w = args.inertia,
                 c1 = args.individual,
                 c2 = args.social)
@@ -387,6 +440,7 @@ def main():
                 num_particles = args.particles,
                 max_iteration = args.maxIter,
                 max_flip = args.maxFlip,
+                maxTabuSize = args.maxTabuSize,
                 w = args.inertia,
                 c1 = args.individual,
                 c2 = args.social)
