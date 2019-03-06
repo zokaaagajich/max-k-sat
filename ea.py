@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
 import operator
 import random
@@ -5,21 +8,21 @@ import random
 
 class EA:
 
-    def __init__(self, clauses, num_literals):
+    def __init__(self, clauses, num_literals, num_clauses):
         self.clauses = clauses
-        self.num_clauses = len(self.clauses)
+        self.num_clauses = num_clauses
         self.num_literals = num_literals
 
         """
         Parameters were selected experimentally
         """
-        self.max_iterations = 1000
+        self.max_iterations = 100
         self.generation_size = 100
         self.mutation_rate = 0.01
-        self.selection_size = 10
+        self.reproduction_size = 10
         self.current_iteration = 0
         self.crossover_p = 0.5
-        # self.tournament_k = 20
+        self.tournament_k = 20
         self.top_chromosome = None
 
 
@@ -74,14 +77,67 @@ class EA:
         return self.current_iteration > self.max_iterations or self.top_chromosome != None
 
 
-    def selection(self, chromosomes):
+    def selectionTop10(self, chromosomes):
         """
         Perform selection using top 10 best fitness chromosome approach
         """
-
-        #TODO add tournament or rullete approach!
         sorted_chromos = sorted(chromosomes, key = lambda chromo: chromo.fitness)
         selected_chromos = sorted_chromos[:10]
+
+        return selected_chromos
+
+
+    def selection_tournament_pick_one(self, chromosomes, k):
+        """
+        Chooses one chromosome using tournament selection.
+        Parameter k defines how many chromosomes we take from population
+        """
+        the_chosen_ones = []
+        top_i = None
+
+        #Choose k random chromosomes from population and search for chromosome with
+        #highest fitness
+        for i in range(k):
+            pick = random.randint(0, self.num_literals - 1)
+            the_chosen_ones.append(chromosomes[i])
+            if top_i == None or the_chosen_ones[i].fitness > the_chosen_ones[top_i].fitness:
+                top_i = i
+
+        return the_chosen_ones[top_i]
+
+
+    def selectionTournament(self, chromosomes):
+        """
+        Function chooses self.reproduction_size chromosomes using tournament selection
+        """
+        selected_chromos = []
+        selected_chromos = [self.selection_tournament_pick_one(chromosomes, self.tournament_k) for i in range(self.reproduction_size)]
+
+        return selected_chromos
+
+
+    def selection_roulette_pick_one(self, chromosomes, sum_fitness):
+        """
+        Chooses one chromosome using roulette selection.
+        """
+        pick = random.uniform(0, sum_fitness)
+        value = 0
+        i = 0
+
+        for chromosome in chromosomes:
+            i += 1
+            value += chromosome.fitness
+            if value > pick:
+                return chromosome
+
+
+    def selectionRoulette(self, chromosomes):
+        """
+        Function chooses self.reproduction_size chromosomes using roulette selection
+        """
+        sum_fitness = sum(chromosome.fitness for chromosome in chromosomes)
+        selected_chromos = []
+        selected_chromos = [self.selection_roulette_pick_one(chromosomes, sum_fitness) for i in range(self.reproduction_size)]
 
         return selected_chromos
 
@@ -112,7 +168,7 @@ class EA:
         t = random.random()
         if t < self.mutation_rate:
             #We do mutation
-            i = random.randint(0, len(chromosome)-1)
+            i = random.randint(0, self.num_literals-1)
             chromosome[i] = 1 if chromosome[i] == 0 else 0
 
         return chromosome
@@ -152,7 +208,10 @@ class EA:
             print('Iteration %d:' % self.current_iteration)
 
             #From population choose chromosomes for reproduction
-            for_reproduction = self.selection(chromosomes)
+
+            # for_reproduction = self.selectionTop10(chromosomes)
+            # for_reproduction = self.selectionTournament(chromosomes)
+            for_reproduction = self.selectionRoulette(chromosomes)
 
             #Show current state of algorithm
             print('Top solution fitness = %d' % max(chromosomes, key = lambda chromo: chromo.fitness).fitness)
@@ -166,7 +225,7 @@ class EA:
         if self.top_chromosome:
             return Chromosome(self.top_chromosome, self.fitness(self.top_chromosome))
         else:
-            max(chromosomes, key = lambda chromo: chromo.fitness)
+            return max(chromosomes, key = lambda chromo: chromo.fitness)
 
 
 
@@ -179,6 +238,7 @@ class Chromosome:
         self.solution = solution
         self.fitness = fitness
 
+
     def __str__(self):
         return ('f = ' + str(self.fitness) + ' %s') % [x for x in self.solution]
 
@@ -186,7 +246,7 @@ class Chromosome:
 def clauses_from_file(filename):
     """
     Returns array of clauses [[1,2,3], [-1,2], ...] and number of literals(variables)
-        """
+    """
     with open(filename, "r") as fin:
         #remove comments from beginning
         line = fin.readline()
@@ -195,6 +255,7 @@ def clauses_from_file(filename):
 
         header = line.split(" ")
         num_literals = int(header[2].rstrip())
+        num_clauses = int(header[3].rstrip())
 
         lines = fin.readlines()
 
@@ -202,12 +263,12 @@ def clauses_from_file(filename):
             lines[i] = lines[i].split(" ")[:-1]
             lines[i] = [int(x) for x in lines[i]]
 
-        return (lines, num_literals)
+        return (lines, num_literals, num_clauses)
 
 
 def main():
-    clauses, num_literals = clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    ea = EA(clauses, num_literals)
+    clauses, num_literals, num_clauses = clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
+    ea = EA(clauses, num_literals, num_clauses)
     solution = ea.run()
     print(solution)
 
