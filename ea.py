@@ -25,7 +25,10 @@ class EA:
         self.tournament_k = 20
         self.top_chromosome = None
 
-        self.population = self.initial_population()
+        self.lambda_star = 10
+
+        #Initialize population using random approach
+        self.population = [[random.randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
 
     def is_clause_satisfied(self, valuation_list, clause):
         """
@@ -62,16 +65,6 @@ class EA:
         self.goal_function(num_true_clauses, chromosome)
 
         return num_true_clauses
-
-
-    def initial_population(self):
-        """
-        Initialize population using random approach
-        """
-        solutions = [[random.randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
-        init_pop = [Chromosome(solution, self.fitness(solution)) for solution in solutions]
-
-        return init_pop
 
 
     def stop_condition(self):
@@ -127,7 +120,7 @@ class EA:
 
         for chromosome in self.population:
             i += 1
-            value += chromosome.fitness
+            value += self.fitness(chromosome)
             if value > pick:
                 return chromosome
 
@@ -136,7 +129,7 @@ class EA:
         """
         Function chooses self.reproduction_size chromosomes using roulette selection
         """
-        sum_fitness = sum(chromosome.fitness for chromosome in self.population)
+        sum_fitness = sum(self.fitness(chromosome) for chromosome in self.population)
         selected_chromos = []
         selected_chromos = [self.selection_roulette_pick_one(sum_fitness) for i in range(self.reproduction_size)]
 
@@ -170,7 +163,7 @@ class EA:
         if t < self.mutation_rate:
             #We do mutation
             i = random.randint(0, self.num_literals-1)
-            chromosome[i] = 1 if chromosome[i] == 0 else 0
+            chromosome[i] = 1 - chromosome[i]
 
         return chromosome
 
@@ -187,35 +180,42 @@ class EA:
         while len(new_generation) < self.generation_size:
             #Pick 2 randomly and do crossover
             parents = random.sample(for_reproduction, 2)
-            child1, child2 = self.crossover(parents[0].solution, parents[1].solution)
+            child1, child2 = self.crossover(parents[0], parents[1])
 
             #Perform mutation after crossover
             child1 = self.mutation(child1)
             child2 = self.mutation(child2)
 
             #Add new chromosomes into new generation
-            new_generation.append(Chromosome(child1, self.fitness(child1)))
-            new_generation.append(Chromosome(child2, self.fitness(child2)))
+            new_generation.append(child1)
+            new_generation.append(child2)
 
         return new_generation
 
 
-    def create_generation_using_1ToLambda(self):
+    def mutation_one(self, chromosome):
+        ch_copy = chromosome.copy()
+        i = random.randint(0, self.num_literals-1)
+        ch_copy[i] = 1 - ch_copy[i]
+        return ch_copy
+
+
+    def create_generation_1_Lambda(self):
         """
         (1, lambda) - 1 parent reproducing lambda offspring. ',' denotes that the best individuals
         in offspring will form the next generation
         """
         parent = self.population[0]
-        offsprings = []
-        ind = 0
+        children = []
 
         #Choose lambda offspring
-        while ind < lambda:
-            child = self.mutation(parent)
-            # add to offspring if current child is different then others!
+        for i in range(self.lambda_star):
+            child = self.mutation_one(parent)
+            if child not in children:
+                children.append(child)
 
-
-        # select the best of these for next generation
+        best = max(children, key = lambda chromo: self.fitness(chromo))
+        return [best]
 
 
     def update_clauses_weight(self):
@@ -223,7 +223,7 @@ class EA:
         Update clauses weight to identify the hard clauses
         """
         for clause in self.clauses:
-            clause['w'] = clause['w'] + 1 - self.is_clause_satisfied(self.global_best, clause['clause'])
+            clause['w'] = clause['w'] + 1 - self.is_clause_satisfied(self.top_chromosome, clause['clause'])
 
 
 
@@ -241,7 +241,7 @@ def run(clauses, num_literals, num_clauses):
         for_reproduction = ea.selectionRoulette()
 
         #Show current state of algorithm
-        print('Top solution fitness = %d' % max(ea.population, key = lambda chromo: chromo.fitness).fitness)
+        # print('Top solution fitness = %d' % self.fitness(top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation(for_reproduction)
@@ -249,10 +249,7 @@ def run(clauses, num_literals, num_clauses):
         ea.current_iteration += 1
 
     #Return best chromosome in the last population
-    if ea.top_chromosome:
-        return Chromosome(ea.top_chromosome, ea.fitness(self.top_chromosome))
-    else:
-        return max(ea.population, key = lambda chromo: chromo.fitness)
+    # return self.top_chromosome
 
 
 def run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses):
@@ -268,10 +265,10 @@ def run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses):
         print('Iteration %d:' % ea.current_iteration)
 
         #Show current state of algorithm
-        print('Top solution fitness = %d' % max(ea.population, key = lambda chromo: chromo.fitness).fitness)
+        # print('Top solution fitness = %d' % self.fitness(top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
-        ea.population = ea.create_generation_using_1ToLambda()
+        ea.population = ea.create_generation_1_Lambda()
 
         ea.current_iteration += 1
 
@@ -279,26 +276,7 @@ def run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses):
 
 
     #Return best chromosome in the last population
-    if ea.top_chromosome:
-        return Chromosome(ea.top_chromosome, ea.fitness(self.top_chromosome))
-    else:
-        return max(ea.population, key = lambda chromo: chromo.fitness)
-
-
-
-class Chromosome:
-    """
-    Class chromosome represents one chromosome that has one solution
-    and it fitness value
-    """
-    def __init__(self, solution, fitness):
-        self.solution = solution
-        self.fitness = fitness
-
-
-    def __str__(self):
-        return ('f = ' + str(self.fitness) + ' %s') % [x for x in self.solution]
-
+    # return self.top_chromosome
 
 
 def clauses_from_file(filename):
@@ -357,11 +335,11 @@ def w_clauses_from_file(filename):
 
 
 def main():
-    clauses, num_literals, num_clauses = clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    run(clauses, num_literals, num_clauses)
+    # clauses, num_literals, num_clauses = clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
+    # run(clauses, num_literals, num_clauses)
 
-    # clauses, clauses_with_weights, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    # run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses)
+    clauses, clauses_with_weights, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
+    run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses)
 
 
 if __name__ == "__main__":
