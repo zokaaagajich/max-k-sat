@@ -25,6 +25,7 @@ class EA:
         self.tournament_k = 20
         self.top_chromosome = None
 
+        self.population = self.initial_population()
 
     def is_clause_satisfied(self, valuation_list, clause):
         """
@@ -77,17 +78,17 @@ class EA:
         return self.current_iteration > self.max_iterations or self.top_chromosome != None
 
 
-    def selectionTop10(self, chromosomes):
+    def selectionTop10(self):
         """
         Perform selection using top 10 best fitness chromosome approach
         """
-        sorted_chromos = sorted(chromosomes, key = lambda chromo: chromo.fitness)
+        sorted_chromos = sorted(self.population, key = lambda chromo: chromo.fitness)
         selected_chromos = sorted_chromos[:10]
 
         return selected_chromos
 
 
-    def selection_tournament_pick_one(self, chromosomes, k):
+    def selection_tournament_pick_one(self, k):
         """
         Chooses one chromosome using tournament selection.
         Parameter k defines how many chromosomes we take from population
@@ -99,24 +100,24 @@ class EA:
         #highest fitness
         for i in range(k):
             pick = random.randint(0, self.num_literals - 1)
-            the_chosen_ones.append(chromosomes[i])
+            the_chosen_ones.append(self.population[i])
             if top_i == None or the_chosen_ones[i].fitness > the_chosen_ones[top_i].fitness:
                 top_i = i
 
         return the_chosen_ones[top_i]
 
 
-    def selectionTournament(self, chromosomes):
+    def selectionTournament(self):
         """
         Function chooses self.reproduction_size chromosomes using tournament selection
         """
         selected_chromos = []
-        selected_chromos = [self.selection_tournament_pick_one(chromosomes, self.tournament_k) for i in range(self.reproduction_size)]
+        selected_chromos = [self.selection_tournament_pick_one(self.tournament_k) for i in range(self.reproduction_size)]
 
         return selected_chromos
 
 
-    def selection_roulette_pick_one(self, chromosomes, sum_fitness):
+    def selection_roulette_pick_one(self, sum_fitness):
         """
         Chooses one chromosome using roulette selection.
         """
@@ -124,20 +125,20 @@ class EA:
         value = 0
         i = 0
 
-        for chromosome in chromosomes:
+        for chromosome in self.population:
             i += 1
             value += chromosome.fitness
             if value > pick:
                 return chromosome
 
 
-    def selectionRoulette(self, chromosomes):
+    def selectionRoulette(self):
         """
         Function chooses self.reproduction_size chromosomes using roulette selection
         """
-        sum_fitness = sum(chromosome.fitness for chromosome in chromosomes)
+        sum_fitness = sum(chromosome.fitness for chromosome in self.population)
         selected_chromos = []
-        selected_chromos = [self.selection_roulette_pick_one(chromosomes, sum_fitness) for i in range(self.reproduction_size)]
+        selected_chromos = [self.selection_roulette_pick_one(sum_fitness) for i in range(self.reproduction_size)]
 
         return selected_chromos
 
@@ -200,24 +201,21 @@ class EA:
 
 
     def run(self):
-        #Generate initial population and calculate fitness of each chromosome
-        chromosomes = self.initial_population()
-
         #While stop condition is not archieved
         while not self.stop_condition():
             print('Iteration %d:' % self.current_iteration)
 
             #From population choose chromosomes for reproduction
 
-            # for_reproduction = self.selectionTop10(chromosomes)
-            # for_reproduction = self.selectionTournament(chromosomes)
-            for_reproduction = self.selectionRoulette(chromosomes)
+            # for_reproduction = self.selectionTop10()
+            # for_reproduction = self.selectionTournament()
+            for_reproduction = self.selectionRoulette()
 
             #Show current state of algorithm
-            print('Top solution fitness = %d' % max(chromosomes, key = lambda chromo: chromo.fitness).fitness)
+            print('Top solution fitness = %d' % max(self.population, key = lambda chromo: chromo.fitness).fitness)
 
             #Using genetic operators crossover and mutation create new chromosomes
-            chromosomes = self.create_generation(for_reproduction)
+            self.population = self.create_generation(for_reproduction)
 
             self.current_iteration += 1
 
@@ -225,7 +223,7 @@ class EA:
         if self.top_chromosome:
             return Chromosome(self.top_chromosome, self.fitness(self.top_chromosome))
         else:
-            return max(chromosomes, key = lambda chromo: chromo.fitness)
+            return max(self.population, key = lambda chromo: chromo.fitness)
 
 
 
