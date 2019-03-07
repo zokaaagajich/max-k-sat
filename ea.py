@@ -200,30 +200,89 @@ class EA:
         return new_generation
 
 
-    def run(self):
-        #While stop condition is not archieved
-        while not self.stop_condition():
-            print('Iteration %d:' % self.current_iteration)
+    def create_generation_using_1ToLambda(self):
+        """
+        (1, lambda) - 1 parent reproducing lambda offspring. ',' denotes that the best individuals
+        in offspring will form the next generation
+        """
+        parent = self.population[0]
+        offsprings = []
+        ind = 0
 
-            #From population choose chromosomes for reproduction
+        #Choose lambda offspring
+        while ind < lambda:
+            child = self.mutation(parent)
+            # add to offspring if current child is different then others!
 
-            # for_reproduction = self.selectionTop10()
-            # for_reproduction = self.selectionTournament()
-            for_reproduction = self.selectionRoulette()
 
-            #Show current state of algorithm
-            print('Top solution fitness = %d' % max(self.population, key = lambda chromo: chromo.fitness).fitness)
+        # select the best of these for next generation
 
-            #Using genetic operators crossover and mutation create new chromosomes
-            self.population = self.create_generation(for_reproduction)
 
-            self.current_iteration += 1
+    def update_clauses_weight(self):
+        """
+        Update clauses weight to identify the hard clauses
+        """
+        for clause in self.clauses:
+            clause['w'] = clause['w'] + 1 - self.is_clause_satisfied(self.global_best, clause['clause'])
 
-        #Return best chromosome in the last population
-        if self.top_chromosome:
-            return Chromosome(self.top_chromosome, self.fitness(self.top_chromosome))
-        else:
-            return max(self.population, key = lambda chromo: chromo.fitness)
+
+
+def run(clauses, num_literals, num_clauses):
+    ea = EA(clauses, num_literals, num_clauses)
+
+    #While stop condition is not archieved
+    while not ea.stop_condition():
+        print('Iteration %d:' % ea.current_iteration)
+
+        #From population choose chromosomes for reproduction
+
+        # for_reproduction = ea.selectionTop10()
+        # for_reproduction = ea.selectionTournament()
+        for_reproduction = ea.selectionRoulette()
+
+        #Show current state of algorithm
+        print('Top solution fitness = %d' % max(ea.population, key = lambda chromo: chromo.fitness).fitness)
+
+        #Using genetic operators crossover and mutation create new chromosomes
+        ea.population = ea.create_generation(for_reproduction)
+
+        ea.current_iteration += 1
+
+    #Return best chromosome in the last population
+    if ea.top_chromosome:
+        return Chromosome(ea.top_chromosome, ea.fitness(self.top_chromosome))
+    else:
+        return max(ea.population, key = lambda chromo: chromo.fitness)
+
+
+def run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses):
+    """
+    Using stepwise adaption of weights
+    """
+    ea = EA(clauses, num_literals, num_clauses)
+
+    ea.generation_size = 1
+
+    #While stop condition is not archieved
+    while not ea.stop_condition():
+        print('Iteration %d:' % ea.current_iteration)
+
+        #Show current state of algorithm
+        print('Top solution fitness = %d' % max(ea.population, key = lambda chromo: chromo.fitness).fitness)
+
+        #Using genetic operators crossover and mutation create new chromosomes
+        ea.population = ea.create_generation_using_1ToLambda()
+
+        ea.current_iteration += 1
+
+        #TODO update clauses!!!
+
+
+    #Return best chromosome in the last population
+    if ea.top_chromosome:
+        return Chromosome(ea.top_chromosome, ea.fitness(self.top_chromosome))
+    else:
+        return max(ea.population, key = lambda chromo: chromo.fitness)
 
 
 
@@ -241,10 +300,12 @@ class Chromosome:
         return ('f = ' + str(self.fitness) + ' %s') % [x for x in self.solution]
 
 
+
 def clauses_from_file(filename):
     """
     Returns array of clauses [[1,2,3], [-1,2], ...] and number of literals(variables)
     """
+    clauses = []
     with open(filename, "r") as fin:
         #remove comments from beginning
         line = fin.readline()
@@ -257,18 +318,51 @@ def clauses_from_file(filename):
 
         lines = fin.readlines()
 
-        for i in range(len(lines)):
-            lines[i] = lines[i].split(" ")[:-1]
-            lines[i] = [int(x) for x in lines[i]]
+        for line in lines:
+            line = line.split(" ")[:-1]
+            line = [int(x) for x in line]
+            clauses.append(line)
 
-        return (lines, num_literals, num_clauses)
+        return (clauses, num_literals, num_clauses)
+
+
+def w_clauses_from_file(filename):
+    """
+    Returns array of clauses with weights = 1
+    [{'clause':[1,2,3], 'w':1}, {'clause':[-1,2], 'w':1}... ]
+    and number of literals
+    """
+    clauses = []
+    clauses_with_weights = []
+
+    with open(filename, "r") as fin:
+        #remove comments from beginning
+        line = fin.readline()
+        while(line.lstrip()[0] == 'c'):
+            line = fin.readline()
+
+        header = line.split(" ")
+        num_literals = int(header[2].rstrip())
+        num_clauses = int(header[3].rstrip())
+
+        lines = fin.readlines()
+
+        for line in lines:
+            line = line.split(" ")[:-1]
+            line = [int(x) for x in line]
+            clauses.append(line)
+            clauses_with_weights.append({'clause':line, 'w':1})
+
+        return (clauses, clauses_with_weights, num_literals, num_clauses)
 
 
 def main():
     clauses, num_literals, num_clauses = clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    ea = EA(clauses, num_literals, num_clauses)
-    solution = ea.run()
-    print(solution)
+    run(clauses, num_literals, num_clauses)
+
+    # clauses, clauses_with_weights, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
+    # run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses)
+
 
 if __name__ == "__main__":
     main()
