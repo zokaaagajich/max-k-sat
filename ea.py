@@ -4,31 +4,39 @@
 import os
 import operator
 import random
-
+import math
 
 class EA:
 
-    def __init__(self, clauses, num_literals, num_clauses):
+    def __init__(self, clauses, num_literals, num_clauses,
+                max_iterations = 1000,
+                generation_size = 100,
+                mutation_rate = 0.01,
+                reproduction_size = 10,
+                crossover_p = 0.5,
+                tournament_k = 3,
+                lambda_star = 10,
+                alpha = 0.5):
+
+
         self.clauses = clauses
-        self.num_clauses = num_clauses
         self.num_literals = num_literals
+        self.num_clauses = num_clauses
+        self.max_iterations = max_iterations
+        self.generation_size = generation_size
+        self.mutation_rate = mutation_rate
+        self.reproduction_size = reproduction_size
+        self.crossover_p = crossover_p
+        self.tournament_k = tournament_k
+        self.lambda_star = lambda_star
+        self.alpha = alpha
 
-        """
-        Parameters were selected experimentally
-        """
-        self.max_iterations = 100
-        self.generation_size = 100
-        self.mutation_rate = 0.01
-        self.reproduction_size = 10
         self.current_iteration = 0
-        self.crossover_p = 0.5
-        self.tournament_k = 20
-        self.top_chromosome = None
-
-        self.lambda_star = 10
+        self.variables_weights = {i:0 for i in range(num_literals)}
 
         #Initialize population using random approach
         self.population = [[random.randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
+        self.top_chromosome = self.population[0]
 
     def is_clause_satisfied(self, valuation_list, clause):
         """
@@ -58,9 +66,12 @@ class EA:
         """
         Number of satisfied clauses with given valuation
         """
+        if chromosome == None:
+            return 0
+
         num_true_clauses = 0
         for c in self.clauses:
-            num_true_clauses += self.is_clause_satisfied(chromosome, c)
+            num_true_clauses += self.is_clause_satisfied(chromosome, c['clause'])
 
         self.goal_function(num_true_clauses, chromosome)
 
@@ -68,7 +79,7 @@ class EA:
 
 
     def stop_condition(self):
-        return self.current_iteration > self.max_iterations or self.top_chromosome != None
+        return self.current_iteration > self.max_iterations
 
 
     def selectionTop10(self):
@@ -94,7 +105,7 @@ class EA:
         for i in range(k):
             pick = random.randint(0, self.num_literals - 1)
             the_chosen_ones.append(self.population[i])
-            if top_i == None or the_chosen_ones[i].fitness > the_chosen_ones[top_i].fitness:
+            if top_i == None or self.fitness(the_chosen_ones[i]) > self.fitness(the_chosen_ones[top_i]):
                 top_i = i
 
         return the_chosen_ones[top_i]
@@ -140,8 +151,8 @@ class EA:
         """
         Perform uniform crossover with given probability crossover_p
         """
-        ab = a
-        ba = b
+        ab = a.copy()
+        ba = b.copy()
 
         for i in range(len(a)):
             p = random.random()
@@ -190,7 +201,16 @@ class EA:
             new_generation.append(child1)
             new_generation.append(child2)
 
+        self.top_chromosome = max(new_generation, key = lambda chromo: self.fitness(chromo))
         return new_generation
+
+
+    def fitness_SAW(self, chromosome):
+        """
+        Fitness function with weights
+        in order to identify the hard clauses
+        """
+        return sum(map(lambda i: i['w'] * self.is_clause_satisfied(chromosome, i['clause']), self.clauses))
 
 
     def mutation_one(self, chromosome):
@@ -209,12 +229,15 @@ class EA:
         children = []
 
         #Choose lambda offspring
-        for i in range(self.lambda_star):
+        i = 0
+        while i < self.lambda_star:
             child = self.mutation_one(parent)
             if child not in children:
                 children.append(child)
+                i+=1
 
-        best = max(children, key = lambda chromo: self.fitness(chromo))
+        best = max(children, key = lambda chromo: self.fitness_SAW(chromo))
+        self.top_chromosome = best
         return [best]
 
 
@@ -225,6 +248,72 @@ class EA:
         for clause in self.clauses:
             clause['w'] = clause['w'] + 1 - self.is_clause_satisfied(self.top_chromosome, clause['clause'])
 
+
+    def K(self, x):
+        return -1 if x == 0 else 1
+
+
+    def update_v(self, i):
+        """
+        Update weigths of variables
+        """
+        sum = 0
+
+        #Summing weights of unsatisfied clauses containing variable i
+        for c in self.clauses:
+            if(self.is_clause_satisfied(self.top_chromosome, c['clause']) == False and (i+1) in c['clause']):
+                sum += c['w']
+
+
+        self.variables_weights[i] = self.variables_weights[i] - self.K(self.top_chromosome[i])*sum
+
+
+    def r(self, chromosome):
+        """
+        Function used in fitness_REF
+        """
+        literals = range(self.num_literals) #list [1,2,3..., num_literals]
+
+        arg_up = sum(map(lambda i: self.K(chromosome[i]) * self.variables_weights[i], literals))
+        arg_down = 1 + sum(map(lambda i: abs(self.variables_weights[i]), literals))
+
+        for i in literals:
+            self.update_v(i)
+
+        return 0.5*(1 + arg_up/arg_down)
+
+
+    def fitness_REF(self, chromosome):
+        return sum(map(lambda i: self.is_clause_satisfied(chromosome, i['clause']), self.clauses)) + self.alpha*self.r(chromosome)
+
+
+    def create_generation_steady_state(self, for_reproduction):
+        """
+        Steady state replacement eliminating the worst individual
+        """
+        new_generation = []
+
+        parent1, parent2 = for_reproduction[0], for_reproduction[1]
+        child1, child2 = self.crossover(parent1, parent2)
+
+        best1, best2 = None, None
+
+        while best1 == best2:
+            #TODO change mutation function! Lamarckian SEA-SAW mutation operator
+            child1 = self.mutation_one(child1)
+            child2 = self.mutation_one(child2)
+
+            x = [parent1, parent2, child1, child2]
+
+            #2 highest fitness individuals out of parent1, parent2, child1, child2
+            best1, best2 = sorted(x, key = lambda chromo: self.fitness_REF(chromo))[:2]
+
+        new_generation.append(best1)
+        new_generation.append(best2)
+
+        self.top_chromosome = max(new_generation, key = lambda chromo: self.fitness_REF(chromo))
+
+        return new_generation
 
 
 def run(clauses, num_literals, num_clauses):
@@ -241,7 +330,7 @@ def run(clauses, num_literals, num_clauses):
         for_reproduction = ea.selectionRoulette()
 
         #Show current state of algorithm
-        # print('Top solution fitness = %d' % self.fitness(top_chromosome))
+        print('Top solution fitness = %d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation(for_reproduction)
@@ -249,59 +338,64 @@ def run(clauses, num_literals, num_clauses):
         ea.current_iteration += 1
 
     #Return best chromosome in the last population
-    # return self.top_chromosome
+    return ea.top_chromosome
 
 
-def run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses):
+def run_SAWEA(clauses, num_literals, num_clauses, generation_size, reproduction_size):
     """
     Using stepwise adaption of weights
     """
-    ea = EA(clauses, num_literals, num_clauses)
-
-    ea.generation_size = 1
+    ea = EA(clauses, num_literals, num_clauses,
+            generation_size = generation_size,
+            reproduction_size = reproduction_size,
+            max_iterations = 10)
 
     #While stop condition is not archieved
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
         #Show current state of algorithm
-        # print('Top solution fitness = %d' % self.fitness(top_chromosome))
+        print('Top solution fitness = %d' % ea.fitness_SAW(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation_1_Lambda()
 
         ea.current_iteration += 1
 
-        #TODO update clauses!!!
+        ea.update_clauses_weight()
 
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
+
+
+def run_RFEA(clauses, num_literals, num_clauses):
+    ea = EA(clauses, num_literals, num_clauses, generation_size = 4, reproduction_size = 2, tournament_k = 2)
+
+    #While stop condition is not archieved
+    while not ea.stop_condition():
+        print('Iteration %d:' % ea.current_iteration)
+
+        #From population choose chromosomes for reproduction
+        for_reproduction = ea.selectionTournament()
+
+        #Show current state of algorithm
+        print('Top solution fitness = %d' % ea.fitness_REF(ea.top_chromosome))
+
+        #Using genetic operators crossover and mutation create new chromosomes
+        ea.population = ea.create_generation_steady_state(for_reproduction)
+
+        ea.current_iteration += 1
+
+        ea.update_clauses_weight()
 
     #Return best chromosome in the last population
-    # return self.top_chromosome
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
 
 
-def clauses_from_file(filename):
-    """
-    Returns array of clauses [[1,2,3], [-1,2], ...] and number of literals(variables)
-    """
-    clauses = []
-    with open(filename, "r") as fin:
-        #remove comments from beginning
-        line = fin.readline()
-        while(line.lstrip()[0] == 'c'):
-            line = fin.readline()
+def run_FlipGA(clauses, num_literals, num_clauses):
+    ea = EA(clauses, num_literals, num_clauses, generation_size = 10)
 
-        header = line.split(" ")
-        num_literals = int(header[2].rstrip())
-        num_clauses = int(header[3].rstrip())
 
-        lines = fin.readlines()
 
-        for line in lines:
-            line = line.split(" ")[:-1]
-            line = [int(x) for x in line]
-            clauses.append(line)
-
-        return (clauses, num_literals, num_clauses)
 
 
 def w_clauses_from_file(filename):
@@ -310,7 +404,6 @@ def w_clauses_from_file(filename):
     [{'clause':[1,2,3], 'w':1}, {'clause':[-1,2], 'w':1}... ]
     and number of literals
     """
-    clauses = []
     clauses_with_weights = []
 
     with open(filename, "r") as fin:
@@ -328,18 +421,21 @@ def w_clauses_from_file(filename):
         for line in lines:
             line = line.split(" ")[:-1]
             line = [int(x) for x in line]
-            clauses.append(line)
             clauses_with_weights.append({'clause':line, 'w':1})
 
-        return (clauses, clauses_with_weights, num_literals, num_clauses)
+        return (clauses_with_weights, num_literals, num_clauses)
 
 
 def main():
-    # clauses, num_literals, num_clauses = clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
+    # TODO arguments!
+    # clauses, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
     # run(clauses, num_literals, num_clauses)
 
-    clauses, clauses_with_weights, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    run_SAWEA(clauses, clauses_with_weights, num_literals, num_clauses)
+    # clauses, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
+    # run_SAWEA(clauses, num_literals, num_clauses, 1, 10)
+
+    clauses, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
+    run_RFEA(clauses, num_literals, num_clauses)
 
 
 if __name__ == "__main__":
