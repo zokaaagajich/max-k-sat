@@ -2,12 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-import operator
-import random
-import math
+from random import random, randint, uniform, sample
+
 
 class EA:
-
     def __init__(self, path,
                 max_iterations = 1000,
                 generation_size = 100,
@@ -19,23 +17,28 @@ class EA:
                 alpha = 0.5,
                 max_flip = 30000):
 
+        #Read clauses with weights from file
         self.clauses, self.num_literals, self.num_clauses = w_clauses_from_file(os.path.abspath(path))
+
         self.max_iterations = max_iterations
+        self.current_iteration = 1
         self.generation_size = generation_size
         self.mutation_rate = mutation_rate
         self.reproduction_size = reproduction_size
         self.crossover_p = crossover_p
         self.tournament_k = tournament_k
+        #for SAWEA
         self.lambda_star = lambda_star
+        #for RFEA
         self.alpha = alpha
+        self.variables_weights = {i:0 for i in range(self.num_literals)}
+        #for FlipGA
         self.max_flip = max_flip
 
-        self.current_iteration = 0
-        self.variables_weights = {i:0 for i in range(self.num_literals)}
-
         #Initialize population using random approach
-        self.population = [[random.randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
+        self.population = [[randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
         self.top_chromosome = self.population[0]
+
 
     def is_clause_satisfied(self, valuation_list, clause):
         """
@@ -51,28 +54,13 @@ class EA:
         return False
 
 
-    def goal_function(self, fitness, chromosome):
-        """
-        In case we find optimal solution, we remember gene as optimal and stop the
-        algorithm (stop condition will be archieved).
-        """
-
-        if fitness == self.num_clauses:
-            self.top_chromosome = chromosome
-
-
     def fitness(self, chromosome):
         """
         Number of satisfied clauses with given valuation
         """
-        if chromosome == None:
-            return 0
-
         num_true_clauses = 0
         for c in self.clauses:
             num_true_clauses += self.is_clause_satisfied(chromosome, c['clause'])
-
-        self.goal_function(num_true_clauses, chromosome)
 
         return num_true_clauses
 
@@ -102,7 +90,7 @@ class EA:
         #Choose k random chromosomes from population and search for chromosome with
         #highest fitness
         for i in range(k):
-            pick = random.randint(0, self.num_literals - 1)
+            pick = randint(0, self.num_literals - 1)
             the_chosen_ones.append(self.population[i])
             if top_i == None or self.fitness(the_chosen_ones[i]) > self.fitness(the_chosen_ones[top_i]):
                 top_i = i
@@ -114,17 +102,14 @@ class EA:
         """
         Function chooses self.reproduction_size chromosomes using tournament selection
         """
-        selected_chromos = []
-        selected_chromos = [self.selection_tournament_pick_one(self.tournament_k) for i in range(self.reproduction_size)]
-
-        return selected_chromos
+        return [self.selection_tournament_pick_one(self.tournament_k) for i in range(self.reproduction_size)]
 
 
     def selection_roulette_pick_one(self, sum_fitness):
         """
         Chooses one chromosome using roulette selection.
         """
-        pick = random.uniform(0, sum_fitness)
+        pick = uniform(0, sum_fitness)
         value = 0
         i = 0
 
@@ -140,10 +125,7 @@ class EA:
         Function chooses self.reproduction_size chromosomes using roulette selection
         """
         sum_fitness = sum(self.fitness(chromosome) for chromosome in self.population)
-        selected_chromos = []
-        selected_chromos = [self.selection_roulette_pick_one(sum_fitness) for i in range(self.reproduction_size)]
-
-        return selected_chromos
+        return [self.selection_roulette_pick_one(sum_fitness) for i in range(self.reproduction_size)]
 
 
     def crossover(self, a, b):
@@ -154,7 +136,7 @@ class EA:
         ba = b.copy()
 
         for i in range(len(a)):
-            p = random.random()
+            p = random()
             if p < self.crossover_p:
                 ab[i] = a[i]
                 ba[i] = b[i]
@@ -169,13 +151,11 @@ class EA:
         """
         Performing mutation over chromosome with given probability mutation_rate
         """
-        t = random.random()
+        t = random()
         if t < self.mutation_rate:
             #We do mutation
-            i = random.randint(0, self.num_literals-1)
+            i = randint(0, self.num_literals-1)
             chromosome[i] = 1 - chromosome[i]
-
-        return chromosome
 
 
     def create_generation(self, for_reproduction):
@@ -189,12 +169,12 @@ class EA:
         #While we don't fill up new_generation
         while len(new_generation) < self.generation_size:
             #Pick 2 randomly and do crossover
-            parents = random.sample(for_reproduction, 2)
+            parents = sample(for_reproduction, 2)
             child1, child2 = self.crossover(parents[0], parents[1])
 
             #Perform mutation after crossover
-            child1 = self.mutation(child1)
-            child2 = self.mutation(child2)
+            self.mutation(child1)
+            self.mutation(child2)
 
             #Add new chromosomes into new generation
             new_generation.append(child1)
@@ -213,10 +193,8 @@ class EA:
 
 
     def mutation_one(self, chromosome):
-        ch_copy = chromosome.copy()
-        i = random.randint(0, self.num_literals-1)
-        ch_copy[i] = 1 - ch_copy[i]
-        return ch_copy
+        i = randint(0, self.num_literals-1)
+        chromosome[i] = 1 - chromosome[i]
 
 
     def create_generation_1_Lambda(self):
@@ -230,10 +208,11 @@ class EA:
         #Choose lambda offspring
         i = 0
         while i < self.lambda_star:
-            child = self.mutation_one(parent)
+            child = parent.copy()
+            self.mutation_one(child)
             if child not in children:
                 children.append(child)
-                i+=1
+                i += 1
 
         best = max(children, key = lambda chromo: self.fitness_SAW(chromo))
         self.top_chromosome = best
@@ -301,8 +280,8 @@ class EA:
 
         while best1 == best2:
             #TODO change mutation function! Lamarckian SEA-SAW mutation operator
-            child1 = self.mutation_one(child1)
-            child2 = self.mutation_one(child2)
+            self.mutation_one(child1)
+            self.mutation_one(child2)
 
             x = [parent1, parent2, child1, child2]
 
@@ -356,8 +335,8 @@ class EA:
             child1, child2 = self.crossover(parents[0], parents[1])
 
             #Perform mutation after crossover
-            child1 = self.mutation(child1)
-            child2 = self.mutation(child2)
+            self.mutation(child1)
+            self.mutation(child2)
 
             self.local_search(child1)
             self.local_search(child2)
@@ -494,7 +473,6 @@ def w_clauses_from_file(filename):
         num_clauses = int(header[3].rstrip())
 
         lines = fin.readlines()
-
         for line in lines:
             line = line.split(" ")[:-1]
             line = [int(x) for x in line]
@@ -507,10 +485,15 @@ def main():
     # TODO arguments!
     # run("examples/aim-50-2_0-yes.cnf")
 
-    # run_SAWEA("examples/aim-50-2_0-yes.cnf")
-    # run_RFEA("examples/aim-50-2_0-yes.cnf")
-    solution, fitness = run_FlipGA("examples/aim-200-6_0-yes.cnf")
+    print("SAWEA".center(40, "-"))
+    run_SAWEA("examples/aim-50-2_0-yes.cnf")
+
+    #run_RFEA("examples/aim-50-2_0-yes.cnf")
+
+    print("FlipGA".center(40, "-"))
+    solution, fitness = run_FlipGA("examples/aim-50-6_0-yes.cnf")
     print(solution, fitness)
+
 
 if __name__ == "__main__":
     main()
