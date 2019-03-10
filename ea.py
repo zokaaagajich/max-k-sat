@@ -3,19 +3,21 @@
 
 import os
 from random import random, randint, uniform, sample
+import argparse
 
 
 class EA:
-    def __init__(self, path,
-                max_iterations = 1000,
-                generation_size = 100,
-                mutation_rate = 0.01,
-                reproduction_size = 10,
-                crossover_p = 0.5,
-                tournament_k = 3,
-                lambda_star = 10,
-                alpha = 0.5,
-                max_flip = 30000):
+    def __init__(self,
+                path,
+                max_iterations,
+                generation_size,
+                mutation_rate = None,
+                reproduction_size = None,
+                crossover_p = None,
+                tournament_k = None,
+                lambda_star = None,
+                alpha = None,
+                max_flip = None):
 
         #Read clauses with weights from file
         self.clauses, self.num_literals, self.num_clauses = w_clauses_from_file(os.path.abspath(path))
@@ -242,7 +244,6 @@ class EA:
             if(self.is_clause_satisfied(self.top_chromosome, c['clause']) == False and (i+1) in c['clause']):
                 sum += c['w']
 
-
         self.variables_weights[i] = self.variables_weights[i] - self.K(self.top_chromosome[i])*sum
 
 
@@ -374,14 +375,16 @@ def run(path):
     return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
 
 
-def run_SAWEA(path):
+def run_SAWEA(path, max_iterations, lambda_star):
     """
     Using stepwise adaption of weights
     """
-    ea = EA(path,
-            generation_size = 1,
-            reproduction_size = 10,
-            max_iterations = 1000)
+    ea = EA(
+        path,
+        max_iterations,
+        generation_size = 1,
+        lambda_star = lambda_star
+    )
 
     #While stop condition is not archieved
     while not ea.stop_condition():
@@ -398,15 +401,20 @@ def run_SAWEA(path):
 
         ea.update_clauses_weight()
 
-    return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
 
 
-def run_RFEA(path):
+def run_RFEA(path, max_iterations, crossover_p, alpha):
+
     #TODO why bug
-    ea = EA(path,
-            generation_size = 4,
-            reproduction_size = 2,
-            tournament_k = 2)
+    ea = EA(
+        path,
+        max_iterations,
+        generation_size = 4,
+        reproduction_size = 2,
+        crossover_p = crossover_p,
+        tournament_k = 2,
+        alpha = alpha)
 
     #While stop condition is not archieved
     while not ea.stop_condition():
@@ -426,14 +434,18 @@ def run_RFEA(path):
         ea.update_clauses_weight()
 
     #Return best chromosome in the last population
-    return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
 
 
-def run_FlipGA(path):
-    ea = EA(path,
-            generation_size = 10,
-            max_iterations = 100,
-            mutation_rate = 0.9)
+def run_FlipGA(path, max_iterations, crossover_p, max_flip):
+
+    ea = EA(
+        path,
+        max_iterations,
+        generation_size = 10,
+        mutation_rate = 0.9,
+        crossover_p = crossover_p,
+        max_flip = max_flip)
 
     #While stop condition is not archieved
     while not ea.stop_condition():
@@ -451,7 +463,7 @@ def run_FlipGA(path):
         ea.current_iteration += 1
 
     #Return best chromosome in the last population
-    return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
 
 
 def w_clauses_from_file(filename):
@@ -482,17 +494,79 @@ def w_clauses_from_file(filename):
 
 
 def main():
-    # TODO arguments!
-    # run("examples/aim-50-2_0-yes.cnf")
+    #Parsing arguments of command line
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', help = "path to input .cnf file")
+    parser.add_argument('algorithm',
+                        choices=['sawea','rfea','flipga', 'asap'],
+                        help = "Choose an algorithm to run")
+    parser.add_argument('-i', '--max_iterations',
+                        nargs = '?', default = 1000, type = int,
+                        help = "Maximal number of iterations. Default 1000")
+    parser.add_argument('-g', '--generation_size',
+                        nargs = '?', default = 100, type = int,
+                        help = "Generation size. Default 100")
+    parser.add_argument('-m', '--mutation_rate',
+                        nargs = '?', default = 0.01, type = float,
+                        help = "Mutation probability.  Default 0.01")
+    parser.add_argument('-r', '--reproduction_size',
+                        nargs = '?', default = 10, type = int,
+                        help = "Default 10")
+    parser.add_argument('-p', '--crossover',
+                        nargs = '?', default = 0.5, type = float,
+                        help = "Crossover probability. Default 0.5")
+    parser.add_argument('-k', '--tournament_k',
+                        nargs = '?', default = 3, type = int,
+                        help = "Number of elements in tournament selection. Default 3")
+    parser.add_argument('-l', '--lambda_star',
+                        nargs = '?', default = 10, type = int,
+                        help = "lambda* for SAWEA. Default 10")
+    parser.add_argument('-a', '--alpha',
+                        nargs = '?', default = 0.5, type = float,
+                        help = "alpha for RFEA. Default 0.5")
+    parser.add_argument('-f', '--max_flip',
+                        nargs = '?', default = 30000, type = int,
+                        help = "Maximal number of flips for FlipGA. Default 30000")
+    args = parser.parse_args()
 
-    print("SAWEA".center(40, "-"))
-    run_SAWEA("examples/aim-50-2_0-yes.cnf")
+    #run("examples/aim-50-2_0-yes.cnf")
 
-    #run_RFEA("examples/aim-50-2_0-yes.cnf")
+    if (args.algorithm == "sawea"):
+        print("SAWEA".center(40, "-"))
+        solution, fitness, iteration = run_SAWEA(
+            path                = args.path,
+            max_iterations      = args.max_iterations,
+            lambda_star         = args.lambda_star
+        )
 
-    print("FlipGA".center(40, "-"))
-    solution, fitness = run_FlipGA("examples/aim-50-6_0-yes.cnf")
-    print(solution, fitness)
+    if (args.algorithm == "rfea"):
+        print("SAWEA".center(40, "-"))
+        solution, fitness, iteration = run_RFEA(
+            path                = args.path,
+            max_iterations      = args.max_iterations,
+            crossover_p         = args.crossover,
+            alpha               = args.alpha
+        )
+
+    if (args.algorithm == "flipga"):
+        print("FlipGA".center(40, "-"))
+        solution, fitness, iteration = run_FlipGA(
+            path                = args.path,
+            max_iterations      = args.max_iterations,
+            crossover_p         = args.crossover,
+            max_flip            = args.max_flip
+        )
+
+    if (args.algorithm == "asap"):
+        #TODO ASAP
+        pass
+
+
+    print("Solution:")
+    print(solution)
+    print("Satisfied clauses: ", fitness)
+    print("In ", iteration, " iterations")
+
 
 
 if __name__ == "__main__":
