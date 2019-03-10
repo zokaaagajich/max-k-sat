@@ -8,7 +8,7 @@ import math
 
 class EA:
 
-    def __init__(self, clauses, num_literals, num_clauses,
+    def __init__(self, path,
                 max_iterations = 1000,
                 generation_size = 100,
                 mutation_rate = 0.01,
@@ -16,12 +16,10 @@ class EA:
                 crossover_p = 0.5,
                 tournament_k = 3,
                 lambda_star = 10,
-                alpha = 0.5):
+                alpha = 0.5,
+                max_flip = 30000):
 
-
-        self.clauses = clauses
-        self.num_literals = num_literals
-        self.num_clauses = num_clauses
+        self.clauses, self.num_literals, self.num_clauses = w_clauses_from_file(os.path.abspath(path))
         self.max_iterations = max_iterations
         self.generation_size = generation_size
         self.mutation_rate = mutation_rate
@@ -30,9 +28,10 @@ class EA:
         self.tournament_k = tournament_k
         self.lambda_star = lambda_star
         self.alpha = alpha
+        self.max_flip = max_flip
 
         self.current_iteration = 0
-        self.variables_weights = {i:0 for i in range(num_literals)}
+        self.variables_weights = {i:0 for i in range(self.num_literals)}
 
         #Initialize population using random approach
         self.population = [[random.randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
@@ -79,14 +78,14 @@ class EA:
 
 
     def stop_condition(self):
-        return self.current_iteration > self.max_iterations
+        return self.current_iteration > self.max_iterations or self.fitness(self.top_chromosome) == self.num_clauses
 
 
     def selectionTop10(self):
         """
         Perform selection using top 10 best fitness chromosome approach
         """
-        sorted_chromos = sorted(self.population, key = lambda chromo: chromo.fitness)
+        sorted_chromos = sorted(self.population, key = lambda chromo: self.fitness(chromo), reverse=True)
         selected_chromos = sorted_chromos[:10]
 
         return selected_chromos
@@ -293,7 +292,9 @@ class EA:
         """
         new_generation = []
 
+        #TODO sample(for_reproduction, 2)
         parent1, parent2 = for_reproduction[0], for_reproduction[1]
+        #TODO
         child1, child2 = self.crossover(parent1, parent2)
 
         best1, best2 = None, None
@@ -306,7 +307,7 @@ class EA:
             x = [parent1, parent2, child1, child2]
 
             #2 highest fitness individuals out of parent1, parent2, child1, child2
-            best1, best2 = sorted(x, key = lambda chromo: self.fitness_REF(chromo))[:2]
+            best1, best2 = sorted(x, key = lambda chromo: self.fitness_REF(chromo), reverse = True)[:2]
 
         new_generation.append(best1)
         new_generation.append(best2)
@@ -316,8 +317,61 @@ class EA:
         return new_generation
 
 
-def run(clauses, num_literals, num_clauses):
-    ea = EA(clauses, num_literals, num_clauses)
+    def local_search(self, chromosome):
+        improvement = 1
+        nbrflip = 0
+
+        while(improvement > 0 and nbrflip < self.max_flip):
+
+            improvement = 0
+            for i in range(self.num_literals):
+                fit_before = self.fitness(chromosome)
+                #Flip the i-th variable of the particle
+                chromosome[i] = 1 - chromosome[i]
+                nbrflip += 1
+                fit_after = self.fitness(chromosome)
+
+                gain = fit_after - fit_before
+                if gain >= 0:
+                    #Accept flip
+                    improvement += gain
+                else:
+                    #There is no improvement
+                    #Undo flip
+                    chromosome[i] = 1 - chromosome[i]
+
+
+    def create_generation_generational(self, for_reproduction):
+        new_generation = []
+
+        #Pick 2 best parents and do crossover
+        parents = sorted(for_reproduction, key = lambda chromo: self.fitness(chromo), reverse=True)[:2]
+
+        #Adding to new generation best of current generation
+        new_generation.append(parents[0])
+        new_generation.append(parents[1])
+
+        #While we don't fill up new_generation
+        while len(new_generation) < self.generation_size:
+            child1, child2 = self.crossover(parents[0], parents[1])
+
+            #Perform mutation after crossover
+            child1 = self.mutation(child1)
+            child2 = self.mutation(child2)
+
+            self.local_search(child1)
+            self.local_search(child2)
+
+            #Add new chromosomes into new generation
+            new_generation.append(child1)
+            new_generation.append(child2)
+
+        self.top_chromosome = max(new_generation, key = lambda chromo: self.fitness(chromo))
+        return new_generation
+
+
+def run(path):
+    ea = EA(path)
 
     #While stop condition is not archieved
     while not ea.stop_condition():
@@ -330,7 +384,7 @@ def run(clauses, num_literals, num_clauses):
         for_reproduction = ea.selectionRoulette()
 
         #Show current state of algorithm
-        print('Top solution fitness = %d' % ea.fitness(ea.top_chromosome))
+        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation(for_reproduction)
@@ -338,24 +392,25 @@ def run(clauses, num_literals, num_clauses):
         ea.current_iteration += 1
 
     #Return best chromosome in the last population
-    return ea.top_chromosome
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
 
 
-def run_SAWEA(clauses, num_literals, num_clauses, generation_size, reproduction_size):
+def run_SAWEA(path):
     """
     Using stepwise adaption of weights
     """
-    ea = EA(clauses, num_literals, num_clauses,
-            generation_size = generation_size,
-            reproduction_size = reproduction_size,
-            max_iterations = 10)
+    ea = EA(path,
+            generation_size = 1,
+            reproduction_size = 10,
+            max_iterations = 1000)
 
     #While stop condition is not archieved
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
         #Show current state of algorithm
-        print('Top solution fitness = %d' % ea.fitness_SAW(ea.top_chromosome))
+        print('Current solution fitness = %d' % ea.fitness_SAW(ea.top_chromosome))
+        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation_1_Lambda()
@@ -367,8 +422,12 @@ def run_SAWEA(clauses, num_literals, num_clauses, generation_size, reproduction_
     return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
 
 
-def run_RFEA(clauses, num_literals, num_clauses):
-    ea = EA(clauses, num_literals, num_clauses, generation_size = 4, reproduction_size = 2, tournament_k = 2)
+def run_RFEA(path):
+    #TODO why bug
+    ea = EA(path,
+            generation_size = 4,
+            reproduction_size = 2,
+            tournament_k = 2)
 
     #While stop condition is not archieved
     while not ea.stop_condition():
@@ -378,7 +437,7 @@ def run_RFEA(clauses, num_literals, num_clauses):
         for_reproduction = ea.selectionTournament()
 
         #Show current state of algorithm
-        print('Top solution fitness = %d' % ea.fitness_REF(ea.top_chromosome))
+        print('Current solution fitness = %d' % ea.fitness_REF(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation_steady_state(for_reproduction)
@@ -391,11 +450,29 @@ def run_RFEA(clauses, num_literals, num_clauses):
     return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
 
 
-def run_FlipGA(clauses, num_literals, num_clauses):
-    ea = EA(clauses, num_literals, num_clauses, generation_size = 10)
+def run_FlipGA(path):
+    ea = EA(path,
+            generation_size = 10,
+            max_iterations = 100,
+            mutation_rate = 0.9)
 
+    #While stop condition is not archieved
+    while not ea.stop_condition():
+        print('Iteration %d:' % ea.current_iteration)
 
+        #From population choose chromosomes for reproduction
+        for_reproduction = ea.selectionTop10()
 
+        #Show current state of algorithm
+        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
+
+        #Using genetic operators crossover and mutation create new chromosomes
+        ea.population = ea.create_generation_generational(for_reproduction)
+
+        ea.current_iteration += 1
+
+    #Return best chromosome in the last population
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome))
 
 
 def w_clauses_from_file(filename):
@@ -428,15 +505,12 @@ def w_clauses_from_file(filename):
 
 def main():
     # TODO arguments!
-    # clauses, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    # run(clauses, num_literals, num_clauses)
+    # run("examples/aim-50-2_0-yes.cnf")
 
-    # clauses, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    # run_SAWEA(clauses, num_literals, num_clauses, 1, 10)
-
-    clauses, num_literals, num_clauses = w_clauses_from_file(os.path.abspath("examples/aim-50-2_0-yes.cnf"))
-    run_RFEA(clauses, num_literals, num_clauses)
-
+    # run_SAWEA("examples/aim-50-2_0-yes.cnf")
+    # run_RFEA("examples/aim-50-2_0-yes.cnf")
+    solution, fitness = run_FlipGA("examples/aim-200-6_0-yes.cnf")
+    print(solution, fitness)
 
 if __name__ == "__main__":
     main()
