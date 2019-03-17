@@ -17,7 +17,8 @@ class EA:
                 tournament_k = None,
                 lambda_star = None,
                 alpha = None,
-                max_flip = None):
+                max_flip = None,
+                max_tabu_size = None):
 
         #Read clauses with weights from file
         self.clauses, self.num_literals, self.num_clauses = w_clauses_from_file(os.path.abspath(path))
@@ -36,6 +37,9 @@ class EA:
         self.variables_weights = {i:0 for i in range(self.num_literals)}
         #for FlipGA
         self.max_flip = max_flip
+        #for ASAP
+        self.tabu_list = []
+        self.max_tabu_size = max_tabu_size
 
         #Initialize population using random approach
         self.population = [[randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
@@ -81,7 +85,7 @@ class EA:
         return selected_chromos
 
 
-    def selection_tournament_pick_one(self, k):
+    def selection_tournament_pick_one(self):
         """
         Chooses one chromosome using tournament selection.
         Parameter k defines how many chromosomes we take from population
@@ -89,14 +93,16 @@ class EA:
         the_chosen_ones = []
         top_i = None
 
-        #Choose k random chromosomes from population and search for chromosome with
+        #Choose k random chromosomes for battle from population and search for chromosome with
         #highest fitness
-        for i in range(k):
+        for i in range(self.tournament_k):
             pick = randint(0, self.num_literals - 1)
             the_chosen_ones.append(self.population[i])
             if top_i == None or self.fitness(the_chosen_ones[i]) > self.fitness(the_chosen_ones[top_i]):
                 top_i = i
 
+        self.population.remove(the_chosen_ones[top_i])
+        self.tournament_k -= 1
         return the_chosen_ones[top_i]
 
 
@@ -104,8 +110,9 @@ class EA:
         """
         Function chooses self.reproduction_size chromosomes using tournament selection
         """
-        return [self.selection_tournament_pick_one(self.tournament_k) for i in range(self.reproduction_size)]
-
+        selected = [self.selection_tournament_pick_one() for i in range(self.reproduction_size)]
+        self.tournament_k += self.reproduction_size
+        return selected
 
     def selection_roulette_pick_one(self, sum_fitness):
         """
@@ -270,16 +277,15 @@ class EA:
         """
         Steady state replacement eliminating the worst individual
         """
-        new_generation = []
-
-        #TODO sample(for_reproduction, 2)
         parent1, parent2 = for_reproduction[0], for_reproduction[1]
-        #TODO
-        child1, child2 = self.crossover(parent1, parent2)
+        child1 = parent1.copy()
+        child2 = parent2.copy()
 
+        #no crossover!
         best1, best2 = None, None
 
         while best1 == best2:
+
             #TODO change mutation function! Lamarckian SEA-SAW mutation operator
             self.mutation_one(child1)
             self.mutation_one(child2)
@@ -289,12 +295,10 @@ class EA:
             #2 highest fitness individuals out of parent1, parent2, child1, child2
             best1, best2 = sorted(x, key = lambda chromo: self.fitness_REF(chromo), reverse = True)[:2]
 
-        new_generation.append(best1)
-        new_generation.append(best2)
+        self.population.append(best1.copy())
+        self.population.append(best2.copy())
 
-        self.top_chromosome = max(new_generation, key = lambda chromo: self.fitness_REF(chromo))
-
-        return new_generation
+        self.top_chromosome = max(self.population, key = lambda chromo: self.fitness_REF(chromo))
 
 
     def local_search(self, chromosome):
@@ -348,6 +352,54 @@ class EA:
 
         self.top_chromosome = max(new_generation, key = lambda chromo: self.fitness(chromo))
         return new_generation
+
+
+    def local_search_tabu(self, chromosome):
+        improvement = 1
+        nbrflip = 0
+
+        while(  improvement > 0
+                and nbrflip < self.max_flip
+                and chromosome not in self.tabu_list):
+
+            improvement = 0
+            for i in range(self.num_literals):
+                fit_before = self.fitness(chromosome)
+                #Flip the i-th variable of the particle
+                chromosome[i] = 1 - chromosome[i]
+                nbrflip += 1
+                fit_after = self.fitness(chromosome)
+
+                gain = fit_after - fit_before
+                if gain >= 0:
+                    #Accept flip
+                    improvement += gain
+                else:
+                    #There is no improvement
+                    #Undo flip
+                    chromosome[i] = 1 - chromosome[i]
+
+            if improvement == 0:
+                #If no improvement add this solution to tabu list
+                self.tabu_list.append(chromosome)
+                if len(self.tabu_list) > self.max_tabu_size:
+                    del self.tabu_list[0]
+
+
+    def create_generation_1_plus_1(self):
+        """
+        (1+1) - 1 parent reproducing 1 child. '+' denotes elitism strategy on both generations
+        """
+        parent = self.population[0]
+        child = parent.copy()
+
+        #TODO random-adaptive mutation
+        self.mutation_one(child)
+        self.local_search_tabu(child)
+
+        best = child if self.fitness(child) > self.fitness(parent) else parent
+        self.top_chromosome = best
+        return [best]
 
 
 def run(path):
@@ -406,14 +458,13 @@ def run_SAWEA(path, max_iterations, lambda_star):
 
 def run_RFEA(path, max_iterations, crossover_p, alpha):
 
-    #TODO why bug
     ea = EA(
         path,
         max_iterations,
         generation_size = 4,
         reproduction_size = 2,
         crossover_p = crossover_p,
-        tournament_k = 2,
+        tournament_k = 4,
         alpha = alpha)
 
     #While stop condition is not archieved
@@ -425,9 +476,10 @@ def run_RFEA(path, max_iterations, crossover_p, alpha):
 
         #Show current state of algorithm
         print('Current solution fitness = %d' % ea.fitness_REF(ea.top_chromosome))
+        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
-        ea.population = ea.create_generation_steady_state(for_reproduction)
+        ea.create_generation_steady_state(for_reproduction)
 
         ea.current_iteration += 1
 
@@ -459,6 +511,32 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation_generational(for_reproduction)
+
+        ea.current_iteration += 1
+
+    #Return best chromosome in the last population
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
+
+
+def run_ASAP(path, max_iterations, max_flip, max_tabu_size):
+    
+    ea = EA(
+        path,
+        max_iterations,
+        generation_size = 1,
+        mutation_rate = 0.9,
+        max_flip = max_flip,
+        max_tabu_size = max_tabu_size)
+
+    #While stop condition is not archieved
+    while not ea.stop_condition():
+        print('Iteration %d:' % ea.current_iteration)
+
+        #Show current state of algorithm
+        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
+
+        #Using genetic operators crossover and mutation create new chromosomes
+        ea.population = ea.create_generation_1_plus_1()
 
         ea.current_iteration += 1
 
@@ -527,6 +605,10 @@ def main():
     parser.add_argument('-f', '--max_flip',
                         nargs = '?', default = 30000, type = int,
                         help = "Maximal number of flips for FlipGA. Default 30000")
+    parser.add_argument('-t', '--max_tabu_size',
+                        nargs = '?', default = 5, type = int,
+                        help = "Maximal number of elements in tabu list. Default 5")
+
     args = parser.parse_args()
 
     #run("examples/aim-50-2_0-yes.cnf")
@@ -540,7 +622,7 @@ def main():
         )
 
     if (args.algorithm == "rfea"):
-        print("SAWEA".center(40, "-"))
+        print("RFEA".center(40, "-"))
         solution, fitness, iteration = run_RFEA(
             path                = args.path,
             max_iterations      = args.max_iterations,
@@ -558,8 +640,13 @@ def main():
         )
 
     if (args.algorithm == "asap"):
-        #TODO ASAP
-        pass
+        print("ASAP".center(40, "-"))
+        solution, fitness, iteration = run_ASAP(
+            path                = args.path,
+            max_iterations      = args.max_iterations,
+            max_flip            = args.max_flip,
+            max_tabu_size       = args.max_tabu_size
+        )
 
 
     print("Solution:")
