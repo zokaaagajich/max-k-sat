@@ -114,6 +114,7 @@ class EA:
         self.tournament_k += self.reproduction_size
         return selected
 
+
     def selection_roulette_pick_one(self, sum_fitness):
         """
         Chooses one chromosome using roulette selection.
@@ -273,10 +274,33 @@ class EA:
         return sum(map(lambda i: self.is_clause_satisfied(chromosome, i['clause']), self.clauses)) + self.alpha*self.r(chromosome)
 
 
+    def get_unsatisfied_clauses(self, chromosome):
+        unsatisfied = []
+
+        for i in self.clauses:
+            if self.is_clause_satisfied(chromosome, i['clause']) == False:
+                unsatisfied.append(i['clause'])
+
+        return unsatisfied
+
+
+    def mutation_knowledge_based(self, chromosome):
+        """
+        Selects an unsat­isfied clause and flips exactly one randomly chosen variable contained in the clause
+        """
+        unsatisfied_clauses = self.get_unsatisfied_clauses(chromosome)
+        r = randint(0, len(unsatisfied_clauses)-1)
+        chosen_unsatisfied_clause = unsatisfied_clauses[r]
+        pos = randint(0, len(chosen_unsatisfied_clause)-1)
+        var = abs(chosen_unsatisfied_clause[pos])
+        chromosome[var-1] = 1 - chromosome[var-1]
+
+
     def create_generation_steady_state(self, for_reproduction):
         """
         Steady state replacement eliminating the worst individual
         """
+
         parent1, parent2 = for_reproduction[0], for_reproduction[1]
         child1 = parent1.copy()
         child2 = parent2.copy()
@@ -287,8 +311,8 @@ class EA:
         while best1 == best2:
 
             #TODO change mutation function! Lamarckian SEA-SAW mutation operator
-            self.mutation_one(child1)
-            self.mutation_one(child2)
+            self.mutation_knowledge_based(child1)
+            self.mutation_knowledge_based(child2)
 
             x = [parent1, parent2, child1, child2]
 
@@ -443,7 +467,7 @@ def run_SAWEA(path, max_iterations, lambda_star):
         print('Iteration %d:' % ea.current_iteration)
 
         #Show current state of algorithm
-        print('Current solution fitness = %d' % ea.fitness_SAW(ea.top_chromosome))
+        print('Current solution SAW fitness = %d' % ea.fitness_SAW(ea.top_chromosome))
         print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
@@ -475,7 +499,7 @@ def run_RFEA(path, max_iterations, crossover_p, alpha):
         for_reproduction = ea.selectionTournament()
 
         #Show current state of algorithm
-        print('Current solution fitness = %d' % ea.fitness_REF(ea.top_chromosome))
+        print('Current solution RFEA fitness = %d' % ea.fitness_REF(ea.top_chromosome))
         print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
@@ -519,7 +543,7 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
 
 
 def run_ASAP(path, max_iterations, max_flip, max_tabu_size):
-    
+
     ea = EA(
         path,
         max_iterations,
