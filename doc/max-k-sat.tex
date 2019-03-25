@@ -40,7 +40,7 @@
 \section{Uvod}
 %TODO
 
-\section{Formulacija problema}
+\section{Formulacija problema  i reprezentacija rešenja}
 Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. Problem maksimalne k-zadovoljivosti može se definisati na sledeći način:\\ 
 
 Klauza $C_i$ dužine $k$ je disjunkcija $k$ literala: 
@@ -52,23 +52,73 @@ $$\max_{\vec{v} \in \Omega}\{SC(\vec{v})\}$$
 
 Očigledno ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$. %TODO ref
 
+Za dobar algoritam je takođe važno dobro predstavljanje rešenja. Postoje više načina reprezentacija, ali je ovde odabran prirodna binarna reprezentacija. Svaka čestica je predstavljena binarnim nizom dužine $n$.
+
 
 %TODO
 \section{Evolucioni algoritmi (EA)}
-%Osnovni opis, uvod
+Genetski algoritmi su bazirani na Darvinovoj teoriji evolucije, u kojoj unutar jedne populacije najčešće opstaju najbolje prilagođenje jedinke. Nova generacija jedinki se dobija ukrštanjem jedinki iz prethodne generacije, pri čemu se s vremena na vreme kod nekih jedinki mogu pojaviti mutacije na nekim genima. Evolutivni algoritam ima populaciju koja se sastoji od jednog ili više pojedinaca. Pojedinac, koji se naziva hromozom, sastoji se od gena. U našem slučaju gen predstavlja jedan bit. Hromozom predstavlja kodiranje našeg rešenja. Za svaku jedinku se definiše funkcija prilagođenosti. Nakon inicijalizacije početne populacije, nove generacije jedinki se dobijaju uzastopnom primenom genetskih operatora. Smena generacija se vrši sve dok ne bude ispunjen kriterijum zaustavljanja. \\
+
+% pricica o selekciji, ukrstanju, mutaciji...
 
 \subsection{Pseudokod EA}
+U ovom poglavlju predstavićemo osnovni oblik algoritma na kojem se dalje zasnivaju ostale varijante. 
 
-\subsection{Reprezentacija rešenja}
+\begin{algorithm}[H]
+\SetAlgoLined
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{Formula $F$ u KNF-u, $n$ i $m$}
+\Output{Najbolja procenjena valuacija i broj zadovoljenih klauza}
+\BlankLine
+ inicijalizacija populacije: pozicije i brzine\;
+ t = 0; \tcp*[h]{tekuća iteracija}\\
+ \While{nije zadovoljen uslov zaustavljanja}{
+  t = t + 1\;
+  Selekcija jedinki za primenu genetskih operatora\;
+  Ukrštanje za izabrane parove jedinki\;
+  Mutacija izabranih jedinki\;
+  Određivanje funkcije prilagođenosti populacije\;
+ }
+\caption{Osnovni Evolutivni algoritam}
+\end{algorithm}
 
 \subsection{Inicijalizacija rešenja}
+Potrebno je da inicijalizujemo hromozome pseudoslučajnim brojevima \{0, 1\}. Veoma važnu ulogu igra odabir parametara.  Parametri mogu biti fiksni ili im se vrednosti mogu na određen način menjati iz generacije u generaciju.
 
 \subsection{Fitnes funkcija}
+Tokom različitih varijanti EA algoritama koristile su se različite funkcije prilagođenosti. Prva fitness funkcija koja se sama nameće jeste broj zadovoljenih klauza, koju ćemo koristiti u FlipGA i ASAP algoritmima. Nešto malo komplikovanije funkcije prilagođenosti se koriste u SAWEA I RFEA, koje ćemo objasniti detaljnije kasnije.
 
 \subsection{Lokalna pretraga}
 
 \subsection{Varijante EA algoritma}
-%Kratak opis uz tabelu
+Da bismo dobili što bolje rešenje pokušavamo da kombinujemo različite tehnike operatora selekcije, ukrštanja, mutacije i ostale U tabeli možemo da vidimo osnovna svojstva varijanti evolutivnog algoritma.
+ 
+\begin{table}[h!]
+\centering
+\captionof{table}{Varijante EA algoritma}\label{tab:EA} 
+\begin{tabular}{ |p{3cm}|p{2cm}|p{2cm}|p{2cm}|p{2cm}|}
+ \hline
+ Svojstvo & SAWEA & RFEA & FlipGa & ASAP \\
+ \hline
+ zamena & $(1, \lambda^*)$ & steady-state & generacijski & $(1 + 1)$ \\
+ \hline
+ selekcija & - & turnirska & fitnes proporcijalna & - \\
+ \hline
+ fitness &	$f_{SAW}$ & $f_{REF}$ & $f_{MAXSAT}$ & $f_{MAXSAT}$ \\
+ \hline
+ ukrštanje & - & - & uniformno & - \\
+ \hline
+ mutacija & MutOne & knowledge-based & random & random-adaptive \\
+ \hline
+ lokalna pretraga & - & - & flip heuristika & flip heuristika \\
+ \hline
+ adaptacija & fitnes & fitnes &  - & tabu lista \\
+ \hline
+\end{tabular}
+\end{table}
+
 
 \subsubsection{SAWEA}
 
@@ -80,7 +130,6 @@ Očigledno ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. Doka
 
 
 \subsection{Rezultati}
-
 
 
 
@@ -167,10 +216,6 @@ U test primerima za koje unapred znamo da je formula zadovoljiva, ili koliko je 
  }
 \caption{Osnovni PSO algoritam}
 \end{algorithm}
-
-
-\subsection{Reprezentacija rešenja}
-Za dobar algoritam je takođe važno dobro predstavljanje rešenja. Postoje više načina reprezentacija, ali je ovde odabran prirodna binarna reprezentacija. Svaka čestica je predstavljena binarnim nizom dužine $n$.
 
 
 \subsection{Inicijalizacija rešenja}
