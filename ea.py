@@ -219,6 +219,7 @@ class EA:
         i = 0
         while i < self.lambda_star:
             child = parent.copy()
+            #TODO probati sa Lamarckian mutacijom
             self.mutation_one(child)
             if child not in children:
                 children.append(child)
@@ -310,7 +311,7 @@ class EA:
 
         while best1 == best2:
 
-            #TODO change mutation function! Lamarckian SEA-SAW mutation operator
+            #TODO probati sa Lamarckian SEA-SAW mutation operator
             self.mutation_knowledge_based(child1)
             self.mutation_knowledge_based(child2)
 
@@ -528,6 +529,7 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
         print('Iteration %d:' % ea.current_iteration)
 
         #From population choose chromosomes for reproduction
+        #TODO RULETSKA MORA BITI
         for_reproduction = ea.selectionTop10()
 
         #Show current state of algorithm
