@@ -207,6 +207,38 @@ class EA:
         chromosome[i] = 1 - chromosome[i]
 
 
+    def lamarckian_mutation(self, chromosome):
+        """
+        Set of randomly chosen clauses is generated. If each clause in this set is
+        satisfied by c, then do nothing. Otherwise pick a random variable of an
+        unsatisfied clause and flip its corresponding bit such that it satisfies the clause.
+        """
+
+        random_num_of_clauses = randint(0, self.num_clauses - 1)
+        random_clauses = []
+
+        #Generate set of randomly chosen clauses
+        for i in range(random_num_of_clauses):
+            pos_of_clause = randint(0, self.num_clauses - 1)
+            random_clauses.append(self.clauses[pos_of_clause])
+
+        unsatisfied_clauses = self.get_unsatisfied_clauses(chromosome, random_clauses)
+        if len(unsatisfied_clauses) == 0:
+            return
+
+        r = randint(0, len(unsatisfied_clauses)-1)
+        chosen_unsatisfied_clause = unsatisfied_clauses[r]
+
+        while True:
+            pos = randint(0, len(chosen_unsatisfied_clause)-1)
+            var = abs(chosen_unsatisfied_clause[pos])
+            chromosome[var-1] = 1 - chromosome[var-1]
+            if self.is_clause_satisfied(chromosome, chosen_unsatisfied_clause):
+                break
+            else:
+                chromosome[var-1] = 1 - chromosome[var-1]
+
+
     def create_generation_1_Lambda(self):
         """
         (1, lambda) - 1 parent reproducing lambda offspring. ',' denotes that the best individuals
@@ -219,8 +251,10 @@ class EA:
         i = 0
         while i < self.lambda_star:
             child = parent.copy()
-            #TODO probati sa Lamarckian mutacijom
+            #TODO probati sa Lamarckian mutacijom - proveriti, jer pise da treba od skupa dece odabrati jedno i onda vrsiti mutaciju
             self.mutation_one(child)
+            # self.lamarckian_mutation(child)
+
             if child not in children:
                 children.append(child)
                 i += 1
@@ -275,10 +309,10 @@ class EA:
         return sum(map(lambda i: self.is_clause_satisfied(chromosome, i['clause']), self.clauses)) + self.alpha*self.r(chromosome)
 
 
-    def get_unsatisfied_clauses(self, chromosome):
+    def get_unsatisfied_clauses(self, chromosome, clauses):
         unsatisfied = []
 
-        for i in self.clauses:
+        for i in clauses:
             if self.is_clause_satisfied(chromosome, i['clause']) == False:
                 unsatisfied.append(i['clause'])
 
@@ -289,7 +323,7 @@ class EA:
         """
         Selects an unsat­isfied clause and flips exactly one randomly chosen variable contained in the clause
         """
-        unsatisfied_clauses = self.get_unsatisfied_clauses(chromosome)
+        unsatisfied_clauses = self.get_unsatisfied_clauses(chromosome, self.clauses)
         r = randint(0, len(unsatisfied_clauses)-1)
         chosen_unsatisfied_clause = unsatisfied_clauses[r]
         pos = randint(0, len(chosen_unsatisfied_clause)-1)
@@ -312,8 +346,10 @@ class EA:
         while best1 == best2:
 
             #TODO probati sa Lamarckian SEA-SAW mutation operator
-            self.mutation_knowledge_based(child1)
-            self.mutation_knowledge_based(child2)
+            # self.mutation_knowledge_based(child1)
+            # self.mutation_knowledge_based(child2)
+            self.lamarckian_mutation(child1)
+            self.lamarckian_mutation(child2)
 
             x = [parent1, parent2, child1, child2]
 
@@ -520,6 +556,7 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
         path,
         max_iterations,
         generation_size = 10,
+        reproduction_size = 5,
         mutation_rate = 0.9,
         crossover_p = crossover_p,
         max_flip = max_flip)
@@ -529,8 +566,7 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
         print('Iteration %d:' % ea.current_iteration)
 
         #From population choose chromosomes for reproduction
-        #TODO RULETSKA MORA BITI
-        for_reproduction = ea.selectionTop10()
+        for_reproduction = ea.selectionRoulette()
 
         #Show current state of algorithm
         print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
@@ -634,7 +670,6 @@ def main():
     parser.add_argument('-t', '--max_tabu_size',
                         nargs = '?', default = 5, type = int,
                         help = "Maximal number of elements in tabu list. Default 5")
-
     args = parser.parse_args()
 
     #run("examples/aim-50-2_0-yes.cnf")
