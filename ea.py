@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from random import random, randint, uniform, sample
+from random import random, randint, uniform, sample, choice
 import argparse
 
 
@@ -210,27 +210,22 @@ class EA:
     def lamarckian_mutation(self, chromosome):
         """
         Set of randomly chosen clauses is generated. If each clause in this set is
-        satisfied by c, then do nothing. Otherwise pick a random variable of an
+        satisfied by given chromosome, then do nothing. Otherwise pick a random variable of an
         unsatisfied clause and flip its corresponding bit such that it satisfies the clause.
         """
 
-        random_num_of_clauses = randint(0, self.num_clauses - 1)
-        random_clauses = []
-
         #Generate set of randomly chosen clauses
-        for i in range(random_num_of_clauses):
-            pos_of_clause = randint(0, self.num_clauses - 1)
-            random_clauses.append(self.clauses[pos_of_clause])
+        random_clauses = sample(self.clauses, randint(1, self.num_clauses))
 
         unsatisfied_clauses = self.get_unsatisfied_clauses(chromosome, random_clauses)
-        if len(unsatisfied_clauses) == 0:
+        unsat_clauses_size = len(unsatisfied_clauses)
+        if unsat_clauses_size == 0:
             return
 
-        r = randint(0, len(unsatisfied_clauses)-1)
-        chosen_unsatisfied_clause = unsatisfied_clauses[r]
+        chosen_unsatisfied_clause = choice(unsatisfied_clauses)
 
         while True:
-            pos = randint(0, len(chosen_unsatisfied_clause)-1)
+            pos = randint(0, unsat_clauses_size - 1)
             var = abs(chosen_unsatisfied_clause[pos])
             chromosome[var-1] = 1 - chromosome[var-1]
             if self.is_clause_satisfied(chromosome, chosen_unsatisfied_clause):
@@ -253,7 +248,7 @@ class EA:
             child = parent.copy()
             #TODO probati sa Lamarckian mutacijom - proveriti, jer pise da treba od skupa dece odabrati jedno i onda vrsiti mutaciju
             self.mutation_one(child)
-            # self.lamarckian_mutation(child)
+            #self.lamarckian_mutation(child_for_mutation)
 
             if child not in children:
                 children.append(child)
@@ -324,8 +319,7 @@ class EA:
         Selects an unsat­isfied clause and flips exactly one randomly chosen variable contained in the clause
         """
         unsatisfied_clauses = self.get_unsatisfied_clauses(chromosome, self.clauses)
-        r = randint(0, len(unsatisfied_clauses)-1)
-        chosen_unsatisfied_clause = unsatisfied_clauses[r]
+        chosen_unsatisfied_clause = choice(unsatisfied_clauses)
         pos = randint(0, len(chosen_unsatisfied_clause)-1)
         var = abs(chosen_unsatisfied_clause[pos])
         chromosome[var-1] = 1 - chromosome[var-1]
