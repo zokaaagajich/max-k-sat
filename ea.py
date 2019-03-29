@@ -213,25 +213,17 @@ class EA:
         satisfied by given chromosome, then do nothing. Otherwise pick a random variable of an
         unsatisfied clause and flip its corresponding bit such that it satisfies the clause.
         """
-
         #Generate set of randomly chosen clauses
         random_clauses = sample(self.clauses, randint(1, self.num_clauses))
 
         unsatisfied_clauses = self.get_unsatisfied_clauses(chromosome, random_clauses)
-        unsat_clauses_size = len(unsatisfied_clauses)
-        if unsat_clauses_size == 0:
+        if len(unsatisfied_clauses) == 0:
             return
 
-        chosen_unsatisfied_clause = choice(unsatisfied_clauses)
-
-        while True:
-            pos = randint(0, unsat_clauses_size - 1)
-            var = abs(chosen_unsatisfied_clause[pos])
+        for us in unsatisfied_clauses:
+            pos = randint(0, len(us)-1)
+            var = abs(us[pos])
             chromosome[var-1] = 1 - chromosome[var-1]
-            if self.is_clause_satisfied(chromosome, chosen_unsatisfied_clause):
-                break
-            else:
-                chromosome[var-1] = 1 - chromosome[var-1]
 
 
     def create_generation_1_Lambda(self):
@@ -246,13 +238,14 @@ class EA:
         i = 0
         while i < self.lambda_star:
             child = parent.copy()
-            #TODO probati sa Lamarckian mutacijom - proveriti, jer pise da treba od skupa dece odabrati jedno i onda vrsiti mutaciju
             self.mutation_one(child)
-            #self.lamarckian_mutation(child_for_mutation)
-
             if child not in children:
                 children.append(child)
                 i += 1
+
+        #TODO LAMARCKIAN
+        chromosome = choice(children)
+        self.lamarckian_mutation(chromosome)
 
         best = max(children, key = lambda chromo: self.fitness_SAW(chromo))
         self.top_chromosome = best
@@ -338,12 +331,8 @@ class EA:
         best1, best2 = None, None
 
         while best1 == best2:
-
-            #TODO probati sa Lamarckian SEA-SAW mutation operator
-            # self.mutation_knowledge_based(child1)
-            # self.mutation_knowledge_based(child2)
-            self.lamarckian_mutation(child1)
-            self.lamarckian_mutation(child2)
+            self.mutation_knowledge_based(child1)
+            self.mutation_knowledge_based(child2)
 
             x = [parent1, parent2, child1, child2]
 
@@ -454,7 +443,7 @@ class EA:
 
         best = child if self.fitness(child) > self.fitness(parent) else parent
         self.top_chromosome = best
-        return [best]
+        rln [best]
 
 
 def run(path):

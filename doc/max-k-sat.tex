@@ -226,11 +226,6 @@ Najklasičnija vrsta mutacije je slučajna mutacija (eng.~{\em random mutation})
 
 Ovakav operator mutiranja koristimo u  FlipGA
 
-\subsubsection{Lamarckian SEA-SAW mutacija}
-\label{sec:ea_lamarckian}
-%TODO
-The performance of SAWEA was improved by de Jong and Kosters. They use (1,lambda*)-ES variant but supply another mutation operator, which is very similar to local search. This operator works as follows: A chromosome c in offspring is randomly chosen. Furthermore, a set of randomly chosen clauses is generated. If each clause in this set is satisfied by c, then do nothing. Otherwise pick a random variable of an unsatisfied clause and flip its corresponding bit such that it satisfies the clause. Experimental results reveal that this approach outperforms SAWEA. The authors refer to it as Lamarckian Structural Error Assignment SAW (Lamarckian SEA-SAW).
-
 \subsubsection{Slučajna-prilagodljiva mutacija}
 \label{sec:ea_slucajna_prilagodljiva_mutacija}
 %TODO
@@ -249,6 +244,9 @@ Jedna od najjednostavnijih vrsta mutacije je mutacija jednog bita (eng.~{\em mut
 
 Ovakav operator mutacije se koristi u SAWEA.
 
+\subsubsection{Lamarckian SEA-SAW mutacija}
+\label{sec:ea_lamarckian}
+Da bismo poboljšali SAWEA i RFEA koristimo Lamarckian mutaciju koju su predstavili de Jong i Kosters. Ovakav operator mutacije liči na lokalnu pretragu. Hromozom $c$ od skupa dece je odabran na slučajan način. Takođe kreiramo skup slučajno odabranih klauza. Ako je svaka klauza u ovakvom skupu zadovoljena hromozomom $c$ onda ne raditi ništa. Inače, izabrati slučajnu promenljivu u nezadovoljenoj klauzi i invertovati odgovarajući bit tako da klauza bude zadovoljena.
 
 \subsection{Politika zamene generacija}
  \label{sec:ea_zamena}
@@ -266,6 +264,7 @@ $(\mu + \lambda)$ - od $\mu$ roditelja kreira $\lambda$ dece i bira najbolje jed
 
 \subsection{Lokalna pretraga}
  \label{sec:ea_lokalna_pretraga}
+%TODO
 
 \subsection{Varijante EA algoritma}
 \label{sec:ea_varijante}
@@ -336,7 +335,7 @@ Kreiranje nove generacije se vrši na sledeći način: uzmemo jedinog mogućeg r
 
 \subsection{Rezultati}
 \label{sec:ea_rezultati}
-
+%TODO
 
 
 \section{Optimizacija rojem čestica (PSO)}
