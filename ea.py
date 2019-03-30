@@ -18,7 +18,7 @@ class EA:
                 lambda_star = None,
                 alpha = None,
                 max_flip = None,
-                max_tabu_size = None):
+                max_table_size = None):
 
         #Read clauses with weights from file
         self.clauses, self.num_literals, self.num_clauses = w_clauses_from_file(os.path.abspath(path))
@@ -38,8 +38,9 @@ class EA:
         #for FlipGA
         self.max_flip = max_flip
         #for ASAP
-        self.tabu_list = []
-        self.max_tabu_size = max_tabu_size
+        self.table = []
+        self.max_table_size = max_table_size
+        self.frozen = [0 for x in range(self.num_literals)]
 
         #Initialize population using random approach
         self.population = [[randint(0,1) for x in range(self.num_literals)] for y in range(self.generation_size)]
@@ -157,15 +158,17 @@ class EA:
         return (ab,ba)
 
 
-    def mutation(self, chromosome):
+    def mutation(self, chromosome, adaptive = False):
         """
         Performing mutation over chromosome with given probability mutation_rate
         """
-        t = random()
-        if t < self.mutation_rate:
-            #We do mutation
-            i = randint(0, self.num_literals-1)
-            chromosome[i] = 1 - chromosome[i]
+        for i in range(self.num_literals):
+            #In adaptive version of function don't flip frozen genes
+            if adaptive and self.frozen[i]:
+                continue
+
+            if random() < self.mutation_rate:
+                chromosome[i] = 1 - chromosome[i]
 
 
     def create_generation(self, for_reproduction):
@@ -266,7 +269,7 @@ class EA:
 
     def update_v(self, i):
         """
-        Update weigths of variables
+        Update weights of variables
         """
         sum = 0
 
@@ -345,7 +348,7 @@ class EA:
         self.top_chromosome = max(self.population, key = lambda chromo: self.fitness_REF(chromo))
 
 
-    def local_search(self, chromosome):
+    def local_search(self, chromosome, adaptive = False):
         improvement = 1
         nbrflip = 0
 
@@ -353,6 +356,10 @@ class EA:
 
             improvement = 0
             for i in range(self.num_literals):
+                #In adaptive version of function don't flip frozen genes
+                if adaptive and self.frozen[i]:
+                    continue
+
                 fit_before = self.fitness(chromosome)
                 #Flip the i-th variable of the particle
                 chromosome[i] = 1 - chromosome[i]
@@ -398,58 +405,96 @@ class EA:
         return new_generation
 
 
-    def local_search_tabu(self, chromosome):
-        improvement = 1
-        nbrflip = 0
+    def num_of_equivalence_classes(self):
+        """
+        The chromosomes in table T are grouped into equivalence classes,
+        each class containing equal chromosomes.
+        """
+        eq_dict = {}
+        num_of_eq = 0
+        for row in self.table:
+            str_row = "".join(map(str, row))
+            if str_row in eq_dict:
+                eq_dict[str_row] += 1
+            else:
+                eq_dict[str_row] = 1
+                num_of_eq += 1
 
-        while(  improvement > 0
-                and nbrflip < self.max_flip
-                and chromosome not in self.tabu_list):
+        return num_of_eq
 
-            improvement = 0
-            for i in range(self.num_literals):
-                fit_before = self.fitness(chromosome)
-                #Flip the i-th variable of the particle
-                chromosome[i] = 1 - chromosome[i]
-                nbrflip += 1
-                fit_after = self.fitness(chromosome)
 
-                gain = fit_after - fit_before
-                if gain >= 0:
-                    #Accept flip
-                    improvement += gain
-                else:
-                    #There is no improvement
-                    #Undo flip
-                    chromosome[i] = 1 - chromosome[i]
+    def unfreeze(self):
+        """
+        Unfreeze all genes - set to zero
+        """
+        self.frozen = [0 for x in range(self.num_literals)]
 
-            if improvement == 0:
-                #If no improvement add this solution to tabu list
-                self.tabu_list.append(chromosome)
-                if len(self.tabu_list) > self.max_tabu_size:
-                    del self.tabu_list[0]
+
+    def update_table(self, child):
+        """
+        If Flip Heuristic directs the search towards similar local optima having equal fitness function.
+        Then we can try to escape by prohibiting the flipping of some genes
+        and by adapting the probability of mutation of the genes that are allowed to be modified.
+        """
+        parent = self.population[0]
+
+        #Unfreeze all genes
+        self.unfreeze()
+
+        parent_fitness = self.fitness(parent)
+        child_fitness = self.fitness(child)
+        if parent_fitness > child_fitness:
+            #Discard child
+            child = parent.copy()
+        elif child_fitness > parent_fitness:
+            #Empty table and add child to table
+            self.table.clear()
+            self.table.append(child)
+        else:   #child_fitness == parent_fitness
+            #Add child to table
+            self.table.append(child)
+            #If table is full
+            if len(self.table) == self.max_table_size:
+                #compute frozen genes
+                #NOTE:  sum of all chromosomes gene-wise in table
+                #       if there is no changes across all columns - don't freeze
+                #       later on, that gene can be changed with mutation or local search
+                self.frozen = [(0 if x == self.max_table_size or x == 0 else 1) for x in map(sum, zip(*self.table))]
+
+                #adapt mutation rate
+                n_frozen = sum(self.frozen)
+                self.mutation_rate = 0.5 * n_frozen / self.num_literals
+
+                #count equivalence classes
+                if self.num_of_equivalence_classes() <= 2:
+                    #RESTART - generate new random chromosome
+                    child = [randint(0,1) for x in range(self.num_literals)]
+                    self.unfreeze()
+
+                self.table.clear()
+
+        return child
 
 
     def create_generation_1_plus_1(self):
         """
         (1+1) - 1 parent reproducing 1 child. '+' denotes elitism strategy on both generations
         """
-        parent = self.population[0]
-        child = parent.copy()
+        child = self.population[0].copy()
 
-        #TODO random-adaptive mutation
-        self.mutation_one(child)
-        self.local_search_tabu(child)
+        self.mutation(child, adaptive = True)
+        self.local_search(child, adaptive = True)
+        child = self.update_table(child)
 
-        best = child if self.fitness(child) > self.fitness(parent) else parent
-        self.top_chromosome = best
-        rln [best]
+        self.top_chromosome = child
+        self.population = [self.top_chromosome]
+
 
 
 def run(path):
     ea = EA(path)
 
-    #While stop condition is not archieved
+    #While stop condition is not achieved
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
@@ -482,7 +527,7 @@ def run_SAWEA(path, max_iterations, lambda_star):
         lambda_star = lambda_star
     )
 
-    #While stop condition is not archieved
+    #While stop condition is not achieved
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
@@ -511,7 +556,7 @@ def run_RFEA(path, max_iterations, crossover_p, alpha):
         tournament_k = 4,
         alpha = alpha)
 
-    #While stop condition is not archieved
+    #While stop condition is not achieved
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
@@ -544,7 +589,7 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
         crossover_p = crossover_p,
         max_flip = max_flip)
 
-    #While stop condition is not archieved
+    #While stop condition is not achieved
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
@@ -563,25 +608,28 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
     return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
 
 
-def run_ASAP(path, max_iterations, max_flip, max_tabu_size):
+def run_ASAP(path, max_iterations, max_flip, max_table_size):
 
     ea = EA(
         path,
         max_iterations,
         generation_size = 1,
-        mutation_rate = 0.9,
+        mutation_rate = 0.5,
         max_flip = max_flip,
-        max_tabu_size = max_tabu_size)
+        max_table_size = max_table_size)
 
-    #While stop condition is not archieved
+    #Apply flip heuristic to parent
+    ea.local_search(ea.population[0])
+
+    #While stop condition is not achieved
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
+        #Using genetic operators crossover and mutation create new chromosomes
+        ea.create_generation_1_plus_1()
+
         #Show current state of algorithm
         print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
-
-        #Using genetic operators crossover and mutation create new chromosomes
-        ea.population = ea.create_generation_1_plus_1()
 
         ea.current_iteration += 1
 
@@ -650,9 +698,9 @@ def main():
     parser.add_argument('-f', '--max_flip',
                         nargs = '?', default = 30000, type = int,
                         help = "Maximal number of flips for FlipGA. Default 30000")
-    parser.add_argument('-t', '--max_tabu_size',
-                        nargs = '?', default = 5, type = int,
-                        help = "Maximal number of elements in tabu list. Default 5")
+    parser.add_argument('-t', '--max_table_size',
+                        nargs = '?', default = 10, type = int,
+                        help = "Maximal number of chromosomes in table. Default 10")
     args = parser.parse_args()
 
     #run("examples/aim-50-2_0-yes.cnf")
@@ -689,7 +737,7 @@ def main():
             path                = args.path,
             max_iterations      = args.max_iterations,
             max_flip            = args.max_flip,
-            max_tabu_size       = args.max_tabu_size
+            max_table_size      = args.max_table_size
         )
 
 
