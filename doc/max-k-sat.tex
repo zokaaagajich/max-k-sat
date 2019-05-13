@@ -68,7 +68,7 @@ Za dobar algoritam je takođe važno dobro predstavljanje rešenja. Postoje viš
 \section{Evolucioni algoritmi (EA)}
 \label{sec:ea}
 
-Genetski algoritmi \cite{vi_Janicic} su bazirani na Darvinovoj teoriji evolucije, u kojoj unutar jedne populacije najčešće opstaju najbolje prilagođenje jedinke. Reprezentacija jedinke naziva se hromozom ili genotip. Cilj je naći vrednost za koju zadata funkcija cilja dostiže svoj ekstremum ili vrednost koja je dovoljno blizu ekstremuma. Potencijalna rešenja, tj. jedinke obično su predstavljene nizovima nula i jedinica, ali moguće su i druge reprezentacije. Postupak se odvija kroz generacije.\\
+Genetski algoritmi \cite{vi_Janicic} su bazirani na Darvinovoj teoriji evolucije, u kojoj unutar jedne populacije najčešće opstaju najbolje prilagođene jedinke. Reprezentacija jedinke naziva se hromozom ili genotip. Cilj je naći vrednost za koju zadata funkcija cilja dostiže svoj ekstremum ili vrednost koja je dovoljno blizu ekstremuma. Potencijalna rešenja, tj. jedinke obično su predstavljene nizovima nula i jedinica, ali moguće su i druge reprezentacije. Postupak se odvija kroz generacije.\\
 
 U svakoj generaciji postoji isti broj jedinki i za svaku od njih računa se njen kvalitet. Funkcija koja pridužuje te vrednosti jedinkama naziva se funkcija prilagođenosti ili fitnes funkcija. Iz jedne generacije se na osnovu vrednosti fitnes funkcije, kroz proces selekcije biraju jedinke koje će biti iskorišćene za stvaranje novih jedinki. One kvalitetnije se biraju sa većom verovatnoćom. Videćemo različite tehnike selekcija kao što su turnirska i ruletska. \\
 
@@ -93,7 +93,7 @@ U ovom poglavlju predstavićemo osnovni oblik algoritma na kojem se dalje zasniv
 \Input{Formula $F$ u KNF-u, $n$ i $m$}
 \Output{Najbolja procenjena valuacija i broj zadovoljenih klauza}
 \BlankLine
- inicijalizacija populacije: pozicije i brzine\;
+ inicijalizacija populacije\;
  t = 0; \tcp*[h]{tekuća iteracija}\\
  \While{nije zadovoljen uslov zaustavljanja}{
   t = t + 1\;
@@ -250,7 +250,7 @@ Da bismo poboljšali SAWEA i RFEA koristimo Lamarckian mutaciju koju su predstav
 
 \subsection{Politika zamene generacija}
  \label{sec:ea_zamena}
- Politika zamene generacije \cite{vi_Janicic} opisuje kako se od tekuće generacije dobija nova. Osnovna podela po ovom kriterijumu je na generacijske genetske algoritme (eng.~{\em generational genetic algorithm}) i genetske algoritme stabilnog znanja (eng.~{\em steady state genetic algorithm}). \\
+ Politika zamene generacije \cite{vi_Janicic} opisuje kako se od tekuće generacije dobija nova. Osnovna podela po ovom kriterijumu je na generacijske genetske algoritme (eng.~{\em generational genetic algorithm}) i genetske algoritme stabilnog stanja (eng.~{\em steady state genetic algorithm}). \\
  
  U slučaju generacijskih genetskih algoritama, nova generacija se dobija tako što se selekcijom bira dovoljno jedinki iz tekuće generacije da se napravi cela nova generacija. Izabrane jedinke se ukrštaju i mutiraju i tako dobijena generacija zamenjuje staru. \\
  
@@ -328,8 +328,8 @@ FlipGA ima populaciju veličine 10, koristi generacijsku politiku zamene \ref{se
  
 \subsubsection{ASAP}
 \label{sec:ea_asap}
-ASAP (\textit{Using the Flip Heuristic and Adaptation}) je varijanta ASAP \cite{ea_with_table}. Nastala je od ASAP ali sa drugačijom politikom zamene. Naime, ovde koristimo
-$(1+1)$ strategiju zamene \ref{sec:ea_zamena} (1 roditelj proizvodi 1 dete). Iz ovoga vidimo da je populacija veličine 1, zato ukršanje nije moguće. \\
+ASAP (\textit{Using the Flip Heuristic and Adaptation}) je varijanta ASAP \cite{ea_with_table}. Nastala je od FlipGA ali sa drugačijom politikom zamene. Naime, ovde koristimo
+$(1+1)$ strategiju zamene \ref{sec:ea_zamena} (1 roditelj proizvodi 1 dete). Iz ovoga vidimo da je populacija veličine 1, zato ukrštanje nije moguće. \\
 
 Kreiranje nove generacije se vrši na sledeći način: uzmemo jedinog mogućeg roditelja, slučajno prilagodljivom mutacijom \ref{sec:ea_slucajna_prilagodljiva_mutacija} dobijamo jedno dete. Primenimo lokalnu pretragu sa korišćenjem tabu listi \ref{sec:ea_lokalna_pretraga}. Posto je $(1+1)$ u pitanju, nova generacija je ili roditelj ili dobijeno dete, u zavisnosti od toga ko je prilagođeniji. Koristimo najobičniju funkciju prilagođenosti \ref{sec:ea_fitness}.
 
