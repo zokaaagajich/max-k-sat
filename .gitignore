@@ -1,4 +1,7 @@
 *.aux
+*.bbl
 *.toc
 *.log
 *.gz
+*.out
+*.blg

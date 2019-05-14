@@ -17,11 +17,11 @@
 
 \author{David Dimić, Zorana Gajić \\ daviddimic@hotmail.com, zokaaa\_gajich@bk.ru}
 
-\date{Mart 2019.}
+\date{Maj 2019.}
 
 % text width and height
-\textwidth 16cm
-\textheight 23cm
+\textwidth 14cm
+\textheight 22cm
 
 % distance from the top
 \voffset -1.5cm
@@ -35,21 +35,23 @@
 
 \begin{document}
 
-\maketitle  
+\maketitle
 \tableofcontents
 \newpage
+
 
 \abstract{
 %TODO
 }
 
+
 \section{Uvod}
 \label{sec:uvod}
 %TODO
 
+
 \subsection{Formulacija problema  i reprezentacija rešenja}
 \label{subsec:problem_resenje}
-
 Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. Problem maksimalne k-zadovoljivosti može se definisati na sledeći način:\\ 
 
 Klauza $C_i$ dužine $k$ je disjunkcija $k$ literala: 
@@ -62,6 +64,7 @@ $$\max_{\vec{v} \in \Omega}\{SC(\vec{v})\}$$
 Očigledno, ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$. %TODO ref
 
 Za dobar algoritam je takođe važno dobro predstavljanje rešenja. Postoje više načina reprezentacija, ali je ovde odabran prirodna binarna reprezentacija. Svaka čestica je predstavljena binarnim nizom dužine $n$.
+
 
 
 %TODO
@@ -82,8 +85,9 @@ Kriterijumi zaustavljanja mogu biti razni, ali smo koristili zaustavljanje postu
 
 \subsection{Pseudokod EA}
 \label{sec:ea_preudokod}
-
-U ovom poglavlju predstavićemo osnovni oblik algoritma na kojem se dalje zasnivaju ostale varijante EA algoritma. 
+U ovom poglavlju predstavićemo osnovni oblik algoritma na kojem se dalje zasnivaju ostale
+varijante EA algoritma, a u narednim poglavljima videćemo nekoliko varijanti pojedinačnih
+delova fitnes funkcije, selekcije, ukrštanja i mutacije koje će se nadalje koristiti. \\
 
 \begin{algorithm}[H]
 \SetAlgoLined
@@ -107,13 +111,11 @@ U ovom poglavlju predstavićemo osnovni oblik algoritma na kojem se dalje zasniv
 
 \subsection{Inicijalizacija rešenja}
 \label{sec:ea_init}
-
 Populaciju jedinki jedne generacije čini skup nizova binarnih cifara.
 Potrebno je da inicijalizujemo hromozome pseudoslučajnim brojevima \{0, 1\}. Veoma važnu ulogu igra odabir parametara.  Parametri mogu biti fiksni ili im se vrednosti mogu na određen način menjati iz generacije u generaciju.
 
 \subsection{Fitnes funkcija}
 \label{sec:ea_fitness}
-
 Tokom različitih varijanti EA koristile su se različite funkcije prilagođenosti. Prva fitness funkcija koja se sama nameće jeste broj zadovoljenih klauza, koju ćemo koristiti u FlipGA i ASAP algoritmima.
 
 	\begin{center}
@@ -128,9 +130,8 @@ gde je $N$ ukupan broj klauza, $x$ predstavlja jedan hromozom $i$
 	
 Nešto malo komplikovanije funkcije prilagođenosti se koriste u SAWEA i RFEA algoritmima.
 
-\subsubsection{Fitnes funkcija SAW}
+\subsubsection{SAW}
 \label{sec:fitness_saw}
-
 Eiben i van der Hauw su razvili evolutivni algoritam koji koristi stepenasto prilagođavanje težina (eng.~{\em stepwise adaptation of weights}), odnosno:
 
 	\begin{center}
@@ -157,9 +158,12 @@ gde  je $x^*$ trenutno najbolji hromozom u populaciji. \\
 
 Težina $w_i$ klauze $c_i$ se povećava za 1 ako trenutna najbolja jedinka $x^*$ ne zadovoljava klauzu $c_i$, dok $\Delta w$ povećava težine nezadovoljenih klauza. Visoke težine su dobijene klauzama koje nisu zadovoljene duže vreme. 
 
-\subsubsection{Fitnes funkcija RFEA}
+\subsubsection{REF}
 \label{sec:fitness_rfea}
-Gotlieb i Vos su predstavili koncept funkcija prerada (eng.~{\em refining functions}) koje su nastale tako što smo želeli da prevaziđemo manu obične funckije prilagođenosti za naš problem koja često vraća isti rezultat za različite hromozome. Definišemo je koristeci $ f_{MAXSAT} $ za hromozom $x$ na sledeći način:
+Gotlieb i Vos \cite{GotVos98_f_ref} predstavili su koncept funkcija prerada 
+(eng.~{\em refining functions}) koje su nastale iz želje da se prevaziđe mana obične 
+funckije prilagođenosti koja često vraća isti rezultat za različite hromozome. 
+Definišemo je koristeci $f_{MAXSAT}$ za hromozom $x$ na sledeći način:
 
 \begin{center}
 	$ f_{REF} (x) = f_{MAXSAT} (x) + \alpha r(x) $
@@ -168,21 +172,22 @@ Gotlieb i Vos su predstavili koncept funkcija prerada (eng.~{\em refining functi
 gde je $\alpha > 0 $ predstavlja nivo uticanja funkcije $r$, $ r : \lbrace 0, 1 \rbrace ^ n \rightarrow [0, 1 \rbrace $. 
 Za $\alpha = 0 $ $f_{REF} $ se ponaša kao $f_{MAXSAT} $. \\
 
-Funkcija $r$ za hromozom $x$ se definiše na sledeći način:\\
+Funkcija $r$ za hromozom $x$ se definiše na sledeći način:
 
 \begin{center}
-	$ r(x) = \dfrac{1}{2} ( 1 + \dfrac{\sum_{i=1}^{N} K(x_i) v_i} {1+ \sum_{i=1}^{N} |v_i|} ) $
+$r(x) = \dfrac{1}{2} ( 1 + \dfrac{\sum_{i=1}^{N} K(x_i) v_i} {1+ \sum_{i=1}^{N} |v_i|})$
 \end{center}
 
-gde  $ K(0) = -1, K(1) = 1 $. Autori su predložili da ažuriranje $v_i$  izgleda ovako: \\
+gde  $ K(0) = -1, K(1) = 1 $. Autori su predložili da ažuriranje $v_i$  izgleda ovako:
  
 \begin{center}
 	$ v_i = v_i - K(x^*) \sum_{k \in U_i(x^*)} w_k $
 \end{center}
 
-gde je $x^*$ trenutno najbolja jedinka, $U_i (x^*)$ je skup nezadovoljenih klauza u kojima se pojavljuje promenljiva $i$, $w_k$ je definisano na isti način kao i u \ref{sec:fitness_saw}, $v_i$ predstavlja težine promenljivih.\\
+gde je $x^*$ trenutno najbolja jedinka, $U_i (x^*)$ je skup nezadovoljenih klauza u kojima se pojavljuje promenljiva $i$, $w_k$ je definisano na isti način kao i u \ref{sec:fitness_saw}. $v_i$ predstavlja težine promenljivih.\\
 
 Visoke pozitivne težine ukazuju da se za odgovarajuće promenljive preferira da budu 1, dok za negativne 0. Inicijalno, sve težine promenljivih su postavljene na vrednost 0.
+
 
 \subsection{Selekcija}
 \label{sec:ea_selekcija}
@@ -246,7 +251,8 @@ Ova mutacija koristiće se u SAWEA verziji \ref{sec:ea_sawea}.
 
 \subsubsection{Slučajno-prilagodljiva mutacija}
 \label{sec:ea_slucajno_prilagodljiva_mutacija}
-Slučajno-prilagodljiva mutacija je u svojoj srži zapravo slučajna mutacija sa jednom izmenom:
+Slučajno-prilagodljiva mutacija (eng.~{\em random-adaptive mutation}) \cite{adaptiveEA} 
+je u svojoj srži zapravo slučajna mutacija sa jednom izmenom:
 Neki geni hromozoma mogu biti ,,zamrznuti'' radi očuvanja dobrog rešenja do kog se došlo,
 dok se ostali, za koje se utvrdilo da ne vode do rešenja, mogu menjati.\\
 
@@ -256,7 +262,7 @@ U tom slučaju ne radi ništa i prelazi na sledeći gen hromozoma.
 
 \subsubsection{Mutacija zasnovana na znanju}
 \label{sec:ea_mutacija_znanje}
-Kod mutacije zasnovane na znanju (eng.~{\em knowledge-based mutation})
+Kod mutacije zasnovane na znanju (eng.~{\em knowledge-based mutation}) \cite{ea_with_table}
 pokušavamo da iskoristimo nešto što znamo o trenutnom rešenju
 i da ne vršimo mutaciju na potpuno slučajan način.
 Mutaciju ćemo vršiti nad onim hromozomima koje nismo zadovoljili, 
@@ -272,16 +278,17 @@ Primena ove mutacije nalazi se u RFEA algoritmu \ref{sec:ea_rfea}.
 \subsubsection{Lamarckian SEA-SAW mutacija}
 \label{sec:ea_lamarckian}
 Da bismo poboljšali SAWEA i RFEA koristimo Lamarckian mutaciju koju su predstavili 
-de Jong i Kosters. Ovakav operator mutacije liči na lokalnu pretragu. 
+de Jong i Kosters \cite{ea_without_table, ea_with_table}. 
+Ovakav operator mutacije liči na lokalnu pretragu. 
 Nakon dobijanja dece za novu populaciju bira se jedno dete $c$ na slučajan način.
-Takođe kreiramo skup slučajno odabranih klauza. 
+Takođe, kreiramo skup slučajno odabranih klauza. 
 Ako je svaka klauza u ovakvom skupu zadovoljena hromozomom $c$ onda se ne radi ništa. 
 Inače, izabere se jedna slučajna promenljiva u nezadovoljenoj klauzi i mutira se.
 
 
 \subsection{Politika zamene generacija}
  \label{sec:ea_zamena}
-Politika zamene generacije \cite{vi_Janicic} opisuje kako se od tekuće generacije dobija nova. Osnovna podela po ovom kriterijumu je na generacijske genetske algoritme (eng.~{\em generational genetic algorithm}) i genetske algoritme stabilnog stanja (eng.~{\em steady state genetic algorithm}). \\
+Politika zamene generacije \cite{vi_Janicic, ea_without_table} opisuje kako se od tekuće generacije dobija nova. Osnovna podela po ovom kriterijumu je na generacijske genetske algoritme (eng.~{\em generational genetic algorithm}) i genetske algoritme stabilnog stanja (eng.~{\em steady state genetic algorithm}). \\
  
 U slučaju generacijskih genetskih algoritama, nova generacija se dobija tako što se selekcijom bira dovoljno jedinki iz tekuće generacije da se napravi cela nova generacija. Izabrane jedinke se ukrštaju i mutiraju i tako dobijena generacija zamenjuje staru. \\
  
@@ -294,9 +301,54 @@ $(\mu, \lambda)$ - od $\mu$ roditelja kreira $\lambda$ dece i za novu generaciju
 $(\mu + \lambda)$ - od $\mu$ roditelja kreira $\lambda$ dece i bira najbolje jedinke iz skupa roditelja i dece zajedno.
 
 
-\subsection{Lokalna pretraga}
- \label{sec:ea_lokalna_pretraga}
-%TODO
+\subsection{Lokalna pretraga flip heuristikom}
+\label{sec:lokalna_pretraga_flip}
+Da bi se unapredili standardni evolutivni algoritmi uvodi se stohastička lokalna pretraga
+heuristikom okretanja bitova (eng.~{\em flip heuristic}) \cite{MaRos99_flipGA}.
+Ova heuristika zasniva se na izmeni pojedinačnih bitova u tekućem rešenju. 
+Za svaki bit u hromozomu pokušava se njegovo okretanje. Ako sa tom izmenom ima dobiti 
+(eng.~{\em gain}), u smislu ne pogoršavanja funkcije cilja, 
+onda se čuva nova vrednosti okrenutog bita, 
+dok se u suprotnom vraća na njegovu staru vrednost. 
+Čitav proces se ponavlja dokle god ima napretka, odnosno dok postoji bar jedna izmena
+koja je poboljšala tekuće rešenje, ili dok se ne dostigne maksimalni dozvoljeni broj
+okretanja bitova $maxFlip$.\\
+
+%TODO DAVID tabu list
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{hromozom $p$, Formula $F$ u KNF-u, maxFlip}
+\Output{novi hromozom}
+\BlankLine
+ improvement = 1\;
+ numFlip = 0\;
+ \While{$improvement > 0$ and $numFlip < maxFlip$}{
+  improvement = 0\;
+  \For{$i\leftarrow 0$ \KwTo n}{
+  	flip p[i]\;
+  	numFlip += 1\;
+  	Izračunaj dobit: gain\;
+  	\If{$gain>=0$}{
+		prihvati flip\;
+		improvement += gain\;  	
+  	}
+  	\Else {
+		odbaci flip, vrati na staru vrednost $p[i]$\; 
+  	}
+  }
+ }
+ \caption{Funkcija lokalne pretrage}
+\end{algorithm}
+
+Ovakva lokalna pretraga usporava celokupno izvršavanje algoritma, ali sa druge strane, 
+umnogo ubrzava konvergenciju ka lokalnom optimumu. Ovu lokalnost razbijaju slučajni faktori
+ukrštanja i mutacije evolutivnih algoritama, u čijem se prisustvu obično koristi. 
+Njena primena prvi put predstavljena je u FlipGA algoritmu o kome će biti reči u sledećem poglavlju.
+
 
 \subsection{Varijante EA algoritma}
 \label{sec:ea_varijante}
@@ -306,7 +358,7 @@ Negde čak nećemo imate sve navedene operatove, već samo neke od njih.
 U tabeli \ref{tab:EA} možemo da vidimo osnovna svojstva varijanti evolutivnog algoritma 
 koji su implementirani, odnosno šta koristi svaki od pobrojanih algoritama.
 Zajedničko za sve vrste EA je reprezentacija rešenja kao niz bitova i
-inicijalizacija koja se vrši na slučajan način.
+inicijalizacija koja se vrši na slučajan način.\\
  
 \begin{table}[h!]
 \centering
@@ -315,41 +367,52 @@ inicijalizacija koja se vrši na slučajan način.
  \hline
  Svojstvo & SAWEA & RFEA & FlipGA & ASAP \\
  \hline
- zamena & $(1, \lambda^*)$ & steady-state & generational & $(1 + 1)$ \\
- \hline
- selekcija & - & tournament & roulette & - \\
- \hline
- fitness &	$f_{SAW}$ & $f_{REF}$ & $f_{MAXSAT}$ & $f_{MAXSAT}$ \\
- \hline
+ politika zamene & $(1, \lambda^*)$ & stabilno stanje & generacijski & $(1 + 1)$ \\
+ selekcija & - & turnirska & ruletska & - \\
+ fitnes funkcija &	$f_{SAW}$ & $f_{REF}$ & $f_{MAXSAT}$ & $f_{MAXSAT}$ \\
  ukrštanje & - & - & uniform & - \\
- \hline
- mutacija & mut-one & knowledge-based & random & random-adaptive \\
- \hline
- lokalna pretraga & - & - & flip heuristic & flip heuristic \\
- \hline
- adaptacija & fitness & fitness &  - & tabu list \\
+ mutacija & jednog bita & zasnovana na znanju & slučajna & slučajno-prilagodljiva \\
+ lokalna pretraga & - & - & flip heuristika & flip heuristika \\
+ adaptacija & fitnes & fitnes &  - & tabu lista \\
  \hline
 \end{tabular}
 \end{table}
 
 U narednom delu biće opisani svaki od navedenih algoritama iz tabele \ref{tab:EA}.
+Obratiće se pažnja na njihove prednosti i mane, a praktični rezultati implementacija
+biće prikazani u polavlju. \ref{sec:ea_rezultati}.
+
 
 \subsubsection{SAWEA}
 \label{sec:ea_sawea}
-SAWEA - evolutivni algoritam koji koristi stepenasto prilagođavanje težina (eng.~{\em Using Stepwise Adaptation of Weights}) \cite{ea_with_table, ea_without_table} koji su razvili Eiben i van der Hauw. Korišćena funkcija prilagođenosti je $f_{SAW}$  koja je opisana u \ref{sec:fitness_saw}. Težine $w_i$  su na početku inicijalizovane na vrednost 1. \\
+SAWEA je evolutivni algoritam koji koristi stepenasto prilagođavanje težina 
+(eng.~{\em Stepwise Adaptation of Weights}) \cite{ea_with_table, ea_without_table} 
+koji su razvili Eiben i van der Hauw. 
+Prema preporuci autora koristi se politika zamene generacije $(1,\lambda^*)$ \ref{sec:ea_zamena} i mutacija jednog bita \ref{sec:ea_mutacija_one}. \\
 
-Prema preporuci autora koji su osmislili ovaj algoritam u našem radu koristimo politiku zamene generacije $(1,\lambda^*)$ \ref{sec:ea_zamena} i mutaciju jednog bita \ref{sec:ea_mutacija_one}.\\
+S obzirom da je politika zamene $(1,\lambda^*)$ znamo da je populacija veličine jedan,
+zbog čega nije moguće vršiti selekciju i ukrštanje, već samo mutaciju. 
+Jedan od parametara ovog algoritma je i $\lambda^*$ koji podrazumevano ima vrednost 10.
+Kreiranje nove generacije vrši se na sledeći način:
+Uzima se jedan jedini mogući roditelj, $\lambda^*$ puta primenjuje se operator mutacije
+da bi se dobilo najviše $\lambda^*$ dece. Za novu generaciju bira se najbolji od njih,
+pri čemu je funkcija prilagođenosti $f_{SAW}$.\\
 
-S obzirom da je politika zamene  $(1,\lambda^*)$ iz ovoga zaključujemo da nam je populacija veličine 1, zbog čega nije moguće vršiti ukrštanje. 
-Kao ulazni argument ovog algorima pored ostalih imamo i parametar $\lambda^*$ koji po default-u uzima vrednost 10. Kreiranje nove generacije izgelda ovako: uzimamo jednog jedinog mogućeg roditelja, $\lambda^*$ puta primeni operator mutacije da bismo dobili najvise $\lambda^*$ dece i za novu generaciju uzeti najbolju jedinku iz skupa dece.
+Klauzama su pridružene težine $w_i$ čija je inicijalna vrednost 1 
+(primetimo da je tada $f_{SAW} = f_{MAXSAT}$ ). 
+Potom se se, nakon određenog broja iteracija (uzeto je 10),
+ažuriraju, čime se akcenat stavlja na ,,teže'' klauze.\\
 
-Ne zaboraviti nakon ovoga izvršiti ažuriranje težina klauza.
+Dalje poboljšanje ovog SAWEA algoritma izveli su Jong i Kosters \cite{Jong&Kosters}.
+Oni su uveli novu funkciju prilagođenosti poznatu kao Lamarckian-ovu funkciju 
+opisanu u delu \ref{sec:ea_lamarckian}. Ovo unapređene pokazalo se kao bolje rešenje za
+SAWEA algoritam.
 
-%TODO poboljsanje Lamarckian SEA-SAW mutacijom?
 
 \subsubsection{RFEA}
 \label{sec:ea_rfea}
-Gotlieb i Vos \cite{ea_with_table, ea_without_table} su predstavili koncept funkcija prerada (eng.~{\em refining functions}). Više u korišćenoj funkciji prilagođenosti \ref{sec:fitness_rfea}.
+%TODO ZORANA ovo bas nije najjasnije napisano...
+Gotlieb i Vos \cite{GotVos98_f_ref, ea_with_table, ea_without_table} su predstavili koncept funkcija prerada (eng.~{\em refining functions}). Više u korišćenoj funkciji prilagođenosti \ref{sec:fitness_rfea}.
 U našem algoritmu mi zapravo koristimo SAWEA u kombinaciji sa klasičnim RFEA. \\
 
 RFEA ima populaciju veličine 4. Koristi turnirsku selekciju \ref{sec:ea_turnirska} veličine 2 i politiku zamene generacije stabilnog stanja \ref{sec:ea_zamena} sa eliminacijom najgore jedinke. Takođe je korišćena eliminacija duplikata, tj. dete je odbijeno ukoliko je već u populaciji.
@@ -358,18 +421,45 @@ Ne zaboraviti nakon ovoga izvršiti ažuriranje težina klauza.
 
 %TODO poboljsanje Lamarckian SEA-SAW mutacijom?
 
+
 \subsubsection{FlipGA}
 \label{sec:ea_flipga}
-FlipGa (\textit{Using the Flip Heuristic}) su predstavili Marchiori i Rossi \cite{ea_with_table}. Ovo je zapravo klasičan evolutivni algoritam \ref{sec:ea_preudokod}  koji je unapređen putem lokalne pretrage \ref{sec:ea_lokalna_pretraga}. Koristimo klasičnu funkciju prilagođenosti \ref{sec:ea_fitness} i ruletsku selekciju \ref{sec:ea_ruletska}. \\
+FlipGA (eng.~{\em Flipping Evolutionary Algorithm}) predstavili su Marchiori i Rossi 1999.
+godine \cite{MaRos99_flipGA, ea_with_table}. Ovo je zapravo klasičan evolutivni algoritam
+sa ukrštanjem i mutacijom koji je unapređen lokalnom pretragom 
+\ref{sec:lokalna_pretraga_flip}, pa se zbog ovoga često naziva i Hibridni-EA. 
+Koristi se funkcija prilagođenosti $f_{MAXSAT}$ i ruletska selekcija \ref{sec:ea_ruletska}.\\
 
-FlipGA ima populaciju veličine 10, koristi generacijsku politiku zamene \ref{sec:ea_zamena} sa strategijom elitizma, koja ostavlja najbolje 2 jedinke iz trenutne generacije u narednu.	Ovo je jedini algoritam u kojem uvek vršimo uniformno ukrštanje \ref{sec:ea_ukrstanje} i klasičan operator mutacije \ref{sec:ea_slucajna_mutacija} u kojem parametar mutiranja uzima vrednost 0.9.
- 
+FlipGA koristi generacijsku politiku zamene sa populacijom veličine 10.
+Primenjuje se strategija elitizma koja ostavlja najbolje dve jedinke iz trenutne generacije 
+u narednu. Ovo je jedini algoritam u kojem se uvek vrši uniformno ukrštanje i klasičan operator mutacije. Da bi se izbegli lokalni optimumi parametar mutiranja 
+ima visoku verovatnoću od 0.9. 
+Ovaj algoritam, sa svojom lokalnom pretragom putem flip heuristike,
+dalje je unapređen u ASAP algoritam.
+
+
 \subsubsection{ASAP}
 \label{sec:ea_asap}
-ASAP (\textit{Using the Flip Heuristic and Adaptation}) je varijanta ASAP \cite{ea_with_table}. Nastala je od FlipGA ali sa drugačijom politikom zamene. Naime, ovde koristimo
-$(1+1)$ strategiju zamene \ref{sec:ea_zamena} (1 roditelj proizvodi 1 dete). Iz ovoga vidimo da je populacija veličine 1, zato ukrštanje nije moguće. \\
+ASAP (eng.~{\em Adaptive ea for the SAtisfi­ability Problem}) \cite{adaptiveEA, ea_with_table} nastaje kao dalje unapređenje FlipGA u cilju izbegavanja lokalnih optimuma
+i vremenskom ubrzanju algoritma koji su dali Rossi, Marchiori i Kok. 
+Osnovna ideja je promeniti prostor pretrage prilagodljivim mehanizmom 
+kada se utvrdi da je došlo do zaglavljivanja u lokalnom optimumu. \\
 
-Kreiranje nove generacije se vrši na sledeći način: uzmemo jedinog mogućeg roditelja, slučajno prilagodljivom mutacijom \ref{sec:ea_slucajna_prilagodljiva_mutacija} dobijamo jedno dete. Primenimo lokalnu pretragu sa korišćenjem tabu listi \ref{sec:ea_lokalna_pretraga}. Posto je $(1+1)$ u pitanju, nova generacija je ili roditelj ili dobijeno dete, u zavisnosti od toga ko je prilagođeniji. Koristimo najobičniju funkciju prilagođenosti \ref{sec:ea_fitness}.
+%TODO DAVID opis tabu liste
+
+Sa tehničke strane promenjena je politika zamene i koristi se $(1+1)$ strategija 
+(jedan roditelj proizvodi jedno dete), pa je populacija veličine jedan. Ovo u startu dosta
+ubrzava algoritam i lokalna pretraga sada ne usporava rad.\\
+
+Kako je populacija veličine jedan, nije moguća selekcija ni ukrštanje, 
+pa se kreiranje nove generacije se vrši na sledeći način: 
+Uzima se jedini mogući roditelj, potom se slučajno-prilagodljivom mutacijom
+\ref{sec:ea_slucajno_prilagodljiva_mutacija} dobija jedno dete. 
+Na njega se primenjuje lokalna pretraga sa korišćenjem tabu liste.
+Pošto je $(1+1)$ u pitanju, nova generacija je ili roditelj ili dobijeno dete 
+u zavisnosti od prilagođenosti izračunate sa $f_{MAXSAT}$.
+
+
 
 \subsection{Rezultati}
 \label{sec:ea_rezultati}
@@ -420,9 +510,11 @@ Svi algoritmi pokretani su pet puta sa istim parametrima i beležen je prosečan
 \end{tabular} 
 \end{table}
 
+
+
+
 \section{Optimizacija rojem čestica (PSO)}
 \label{sec:pso}
-
 Optimizacija rojem čestica (Particle swarm optimization – PSO) je jedna od tehnika pretraživanja zasnovana na populaciji kao što je genetski algoritam, ali ne koriste evolutivne algoritme kao što su mutacija i ukrštanje.
 PSO algoritmi su 1995. godine uveli Kenedi i Eberhart kao alternativu standardnim genetskim algoritmima. \\
 
@@ -477,7 +569,6 @@ sigmoid(v_{i}^{t}) = \frac{1}{1+e^{-v_{i}^{t}}}
  
 \subsection{Pseudokod PSO}
 \label{sec:pso_pseudokod}
-
 U ovom poglavlju dat je osnovni oblik algoritma na kojem se zasnivaju ostale varijante i izmene koje će biti detaljnije izložene. Jednu populaciju, odnosno roj, čini unapred određen broj čestica, lista potencijalnih rešenja kao i dodeljene brzine za svaku od njih. 
 Kroz iteracije računa se fitnes, aužuriraju se brzine i pozicije čestica dok se ne zadovolji kriterijum zaustavljanja. 
 Jedna varijanta (WPSOSAT) uvodi i lokalnu pretragu koja se izvodi umesto ažuriranja pozicija, odnosno jednačine \ref{eq:posSIGMOID}.
@@ -511,7 +602,6 @@ U test primerima za koje unapred znamo da je formula zadovoljiva, ili koliko je 
 
 \subsection{Inicijalizacija rešenja}
 \label{sec:pso_init}
-
 Potrebno je inicijalizovati pozicije čestica i vektora brzine. Pozicije su inicijalizovane pseudo-slučajnim brojevima $\{0,1\}$, a vektor brzine realnim brojevima iz intervala $[-V_{min}, V_{max}]$, gde su granice intervala jedan od parametara PSO algoritma.
 
 
@@ -531,51 +621,12 @@ W_{i+1} = W_{i} + 1 - C_i(x^*)
 Svakoj klauzi $C_i$ dodeljuje se težina $W_i$. Ova funkcija ima za cilj identifikovanje težih klauza u procesu učenja koja je predstavljena većom vrednošću $W_i$. Na početku su težine inicijalizovane na 1, pa se potom ažuriraju jednačinom \ref{eq:wForSAW}. $x^*$ je tekuće najbolje rešenje.
 
 
-\subsection{Lokalna pretraga i flip heuristika}
-\label{sec:pso_lokalna_pretraga_flip}
-
-Da bi se unapredio standardni PSO algoritam uvedena je, umesto ažuriranja pozicija čestice jednačinom \ref{eq:posSIGMOID}, stohastička lokalna pretraga heuristikom okretanja bitova (eng.~{\em flip heuristic}).
-Ova heuristika zasniva se na izmeni pojedinačnih bitova u tekućem rešenju. Za svaki bit u čestici pokušava se njegovo okretanje. Ako sa tom izmenom ima dobiti (u smislu ne pogoršavanja funkcije cilja) čuva se nova vrednosti okrenutog bita, dok se u suprotnom vraća na njegovu staru vrednost. 
-Čitav proces se ponavlja dokle god ima napretka, ako je bar jedna izmena poboljšala tekuće rešenje.
-
-%TODO tabu list
-
-\begin{algorithm}[H]
-\SetAlgoLined
-\SetKwInOut{Input}{Input}
-\SetKwInOut{Output}{Output}
-
-\Input{pozicija čestice $p$, Formula $F$ u KNF-u, maxFlip}
-\Output{nova pozicija čestice $p$}
-\BlankLine
- improvement = 1\;
- numFlip = 0\;
- \While{$improvement > 0$ and $numFlip < maxFlip$}{
-  improvement = 0\;
-  \For{$i\leftarrow 0$ \KwTo n}{
-  	flip p[i]\;
-  	numFlip += 1\;
-  	Izračunaj dobit: gain\;
-  	\If{$gain>=0$}{
-		prihvati flip\;
-		improvement += gain\;  	
-  	}
-  	\Else {
-		odbaci flip, vrati na staru vrednost $p[i]$\; 
-  	}
-
-  }
- }
- \caption{Funkcija lokalne pretrage}
-\end{algorithm}
-
-
 \subsection{Varijante PSO algoritma}
 \label{sec:pso_varijante}
 
 Da bismo uporedili kombinaciju lokalne pretrage, SAW fitnes funkcije i klasičnog PSO algoritma implementirani su i testirane sledeće tri verzije: \\
 
-%TODO
+%TODO DAVID
 \subsubsection{PSO-LS}
 \label{sec:psols}
 
@@ -592,10 +643,10 @@ PSOSAT - Koristi lokalnu pretragu, ali ne i $F_{SAW}$, pa je funkcija cilja broj
 
 WPSOSAT - Modifikovan PSO algoritam sa korišćenjem flip heuristike i $F_{SAW}$ fitnes funkcije. Značaj lokalne pretrage ogleda se u poređenju sa PSO-LS, a korišćenje $F_{SAW}$ u poređenju sa PSOSAT.\\
 
+
 \subsection{Rezultati}
 \label{sec:pso_rezultati}
-
-%TODO
+%TODO DAVID
 Svi algoritmi pokretani su pet puta sa istim parametrima i beležen je prosečan broj zadovoljenih klauza, pri čemu podebljan rezultat označava da se do rešenja dolazilo u prvoj iteraciji. U tabeli \ref{tab:UNSAT} skoro svi algoritmi su uspeli da brzo nađu rešenje. Za sada između PSOSAT i WPSOSAT nema razlike. Već za poslednji test vidi se slabost ne korišćenja lokalne pretrage. Već u tabeli \ref{tab:SAT} PSO-LS nije mogao da se uporedi sa ostala dva algoritma. Za neke instance do globalnog optimuma došao je jedino WPSOSAT odakle se vidi značaj SAW funkcije.
 
 \begin{table}[h!]
@@ -650,9 +701,9 @@ Svi algoritmi pokretani su pet puta sa istim parametrima i beležen je prosečan
 \end{table}
 
 
+
 \section{Zaključak}
 \label{sec:zakljucak}
-
 %TODO
 
 \addcontentsline{toc}{section}{Literatura}
