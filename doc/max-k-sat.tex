@@ -13,7 +13,7 @@
 \hypersetup{colorlinks,citecolor=green,filecolor=green,linkcolor=blue,urlcolor=blue}
 
 
-\title{Optimizacija maksimalne k-zadovoljivosti\\ populacionim metahauristikama\\ \small{Seminarski rad u okviru kursa\\ Računarska inteligencija\\ Matematički fakultet}}
+\title{Optimizacija maksimalne k-zadovoljivosti\\ populacionim metahauristikama\\ \small{Seminarski rad u okviru kursa\\ Računarska inteligencija\\ Matematički fakultet, Beograd}}
 
 \author{David Dimić, Zorana Gajić \\ daviddimic@hotmail.com, zokaaa\_gajich@bk.ru}
 
@@ -41,17 +41,18 @@
 
 
 \abstract{
-%TODO
-}
+U ovom radu biće objedinjene i upoređene dve grupe algoritama za rešavanje
+optimizacionog problema maksimalne k-zadovoljivosti zasnovane na populacijama - 
+evolucioni algoritmi implementirani u nekoliko različitih varijanti SAWEA, RFEA, FlipGA
+i ASAP, i rojevi čestica PSO sa verzijama PSO-LS, PSOSAT i WPSOSAT. Biće iznete njihove
+osobine, prednosti, mane i unapređenja, da bi se na kraju, na konkretnim rezultatima 
+implementiranih algoritama pokazale njihove razlike i mogućnosti.}
 
 
 \section{Uvod}
 \label{sec:uvod}
-%TODO
+%TODO prvi pasus
 
-
-\subsection{Formulacija problema  i reprezentacija rešenja}
-\label{subsec:problem_resenje}
 Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. Problem maksimalne k-zadovoljivosti može se definisati na sledeći način:\\ 
 
 Klauza $C_i$ dužine $k$ je disjunkcija $k$ literala: 
@@ -61,9 +62,17 @@ Cilj je pronaći istinitosne vrednosti promenjivih, valuaciju koja je vektor $\v
 Ako valuacija zadovoljava formulu, onda se ona naziva modelom formule $F$. Max k-SAT problem može se definisati parom $(\Omega, SC)$, gde je $\Omega$ skup svih potencijalnih rešenja iz $\{0,1\}^n$, vektor $n$ promenjivih, a $SC:\Omega \rightarrow \mathbb{N}$, skor valuacije koji je jednak broju zadovoljenih klauza. Shodno ovome, problem max k-SAT je naći $\vec{v} \in \Omega$ za koje je $SC$ maksimalno:\\
 $$\max_{\vec{v} \in \Omega}\{SC(\vec{v})\}$$
 
-Očigledno, ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$. %TODO ref
+Očigledno, ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$.\\ %TODO ref
 
-Za dobar algoritam je takođe važno dobro predstavljanje rešenja. Postoje više načina reprezentacija, ali je ovde odabran prirodna binarna reprezentacija. Svaka čestica je predstavljena binarnim nizom dužine $n$.
+%Pregled poglavlja
+Kroz dalja poglavlja pristupiće se rešavanju ovako formulisanog problema prvo evolucionim
+algoritmima (EA) \ref{sec:ea}, gde će biti reči o osnovnim osobinama, 
+biće dat njegov pseudokod i objašnjenja svake od akcija koje se preduzimaju. 
+Potom će biti iznete nekoliko verzija  algoritma i njihova unapređenja u delu
+\ref{sec:ea_varijante} i prikazane njihove mogućnosti
+u rezultatima \ref{sec:ea_rezultati}. U drugom delu biće predstavljena optimizacija
+rojem čestica (PSO) \ref{sec:pso} u njegovoj diskretnoj formi sa nekoliko različitih verzija
+\ref{sec:pso_varijante} koji će biti upoređeni u rezultatima \ref{sec:pso_rezultati}.
 
 
 
@@ -157,6 +166,7 @@ Inicijalno, težine su postavljene na vrednost 1. Za $ \Delta w $ se koristi for
 gde  je $x^*$ trenutno najbolji hromozom u populaciji. \\
 
 Težina $w_i$ klauze $c_i$ se povećava za 1 ako trenutna najbolja jedinka $x^*$ ne zadovoljava klauzu $c_i$, dok $\Delta w$ povećava težine nezadovoljenih klauza. Visoke težine su dobijene klauzama koje nisu zadovoljene duže vreme. 
+
 
 \subsubsection{REF}
 \label{sec:fitness_rfea}
@@ -314,8 +324,6 @@ dok se u suprotnom vraća na njegovu staru vrednost.
 koja je poboljšala tekuće rešenje, ili dok se ne dostigne maksimalni dozvoljeni broj
 okretanja bitova $maxFlip$.\\
 
-%TODO DAVID tabu list
-
 \begin{algorithm}[H]
 \SetAlgoLined
 \SetKwInOut{Input}{Input}
@@ -445,12 +453,64 @@ i vremenskom ubrzanju algoritma koji su dali Rossi, Marchiori i Kok.
 Osnovna ideja je promeniti prostor pretrage prilagodljivim mehanizmom 
 kada se utvrdi da je došlo do zaglavljivanja u lokalnom optimumu. \\
 
-%TODO DAVID opis tabu liste
+Ovo se izvodi pomoću tabu liste u koju se smeštaju slični hromozomi koji imaju
+istu fintes funkicju, a do kojih se došlo lokalnom pretragom. Očigledno da oni vode u
+jedan lokalni optimum, ali i među njima ima razlike. Kada se lista napuni vrši se poređenje
+gena duž cele tabu liste.
+Oni geni koji se ne menjaju verovatno su nas doveli do lokalnog optimuma 
+i njih je potrebno menjati, dok ostale treba
+zadržati tako što će njihova promena biti zabranjena. Takvi geni, koji nisu isti duž cele
+tabu liste, biće ,,zamrznuti''. Zamrznute gene ne mogu izmeniti ni operator mutacije
+ni lokalna pretraga. Veličina tabu liste po prepurici autora je 10. \\
+%TODO DAVID slika tabu liste
+
+Kada se fitnes najboljeg hromozoma poveća tabu lista se prazni i svi geni se odmrzavaju.
+Takođe, hromozomi u listi su grupisani po klasama ekvivalencije, gde svaka klasa sadrži
+iste hromozome (sva rešenja u tabu listi imaju isti fitnes, 
+ali ne moraju biti ista po genima). Kada je broj klasa vrlo mali, manji ili jednak od dva,
+to znači da je pretraga u potpunosti usmerena prema tim rešenjima, i potrebnoje restartovati
+pretragu od novog slučajno generisanog hromozoma. \\
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{otac $c0$, dete $c$, tabu lista T, lista zamrznutih gena}
+\Output{ažuriana tabu lista T}
+\BlankLine
+ odmrzmi sve gene\;
+ \If{$fitness(c0) > fitness(c)$}{
+ 	//odbaci dete jer je roditelj bolji\\
+	c = c0\;	
+ }
+ \Else {
+	\If{$fitness(c) > fitness(c0)$}{
+		isprazni T\;
+		dodaj c u T\;	
+ 	}
+ 	\Else { //isti fitnes\\
+ 		dodaj c u T\;
+ 		\If{T puna} {
+ 			izračunaj zamrznute gene\;
+ 			ažuriraj mutation\_rate\;
+ 			izračunaj klase ekvivalencije\;
+ 			\If{$broj Klasa <= 2$} {
+ 				RESTART\;
+ 			}
+ 			isprazni T\;
+ 		}
+ 	}
+ }
+ \caption{update tabu list}
+\end{algorithm}
+
+
+
 
 Sa tehničke strane promenjena je politika zamene i koristi se $(1+1)$ strategija 
 (jedan roditelj proizvodi jedno dete), pa je populacija veličine jedan. Ovo u startu dosta
-ubrzava algoritam i lokalna pretraga sada ne usporava rad.\\
-
+ubrzava algoritam i lokalna pretraga sada ne usporava rad.
 Kako je populacija veličine jedan, nije moguća selekcija ni ukrštanje, 
 pa se kreiranje nove generacije se vrši na sledeći način: 
 Uzima se jedini mogući roditelj, potom se slučajno-prilagodljivom mutacijom
