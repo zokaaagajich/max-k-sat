@@ -506,7 +506,7 @@ def run(path):
         # for_reproduction = ea.selectionTournament()
         for_reproduction = ea.selectionRoulette()
 
-        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
+        print('Current solution fitness:\n%d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.population = ea.create_generation(for_reproduction)
@@ -531,7 +531,7 @@ def run_SAWEA(path, max_iterations, lambda_star):
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
-        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
+        print('Current solution fitness:\n%d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.create_generation_1_Lambda()
@@ -561,8 +561,8 @@ def run_RFEA(path, max_iterations, crossover_p, alpha):
         #From population choose chromosomes for reproduction
         for_reproduction = ea.selectionTournament()
 
-        print('Current solution RFEA fitness = %g' % ea.fitness_REF(ea.top_chromosome))
-        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
+        #print('Current solution RFEA fitness:\n%g' % ea.fitness_REF(ea.top_chromosome))
+        print('Current solution fitness:\n%d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.create_generation_steady_state(for_reproduction)
@@ -593,7 +593,7 @@ def run_FlipGA(path, max_iterations, crossover_p, max_flip):
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
-        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
+        print('Current solution fitness:\n%d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.create_generation_generational()
@@ -619,7 +619,7 @@ def run_ASAP(path, max_iterations, max_flip, max_table_size):
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
 
-        print('Current solution fitness = %d' % ea.fitness(ea.top_chromosome))
+        print('Current solution fitness:\n%d' % ea.fitness(ea.top_chromosome))
 
         #Using genetic operators crossover and mutation create new chromosomes
         ea.create_generation_1_plus_1()
@@ -735,7 +735,8 @@ def main():
 
     print("Solution:")
     print(solution)
-    print("Satisfied clauses: ", fitness)
+    print("Satisfied clauses:")
+    print(fitness)
     print("In ", iteration, " iterations")
 
 

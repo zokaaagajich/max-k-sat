@@ -320,9 +320,9 @@ def run_PSO_LS(path, num_particles, max_iteration, max_flip, w, c1, c2):
 
         print("Iteration: ", iteration)
         num_satisfied_clauses = pso.num_satisfied_clauses(pso.global_best)
-        print("Satisfied clauses: ", num_satisfied_clauses)
+        print("Satisfied clauses:")
+        print(num_satisfied_clauses)
         print("Fitness: ", pso.global_best_fitness)
-        print()
 
     return (pso.global_best, num_satisfied_clauses, iteration)
 
@@ -357,8 +357,8 @@ def run_PSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1,
             #pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
 
         print("Iteration: ", iteration)
-        print("Satisfied clauses: ", pso.global_best_fitness)
-        print()
+        print("Satisfied clauses:")
+        print(pso.global_best_fitness)
 
     return (pso.global_best, pso.global_best_fitness, iteration)
 
@@ -393,9 +393,9 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1
 
         print("Iteration: ", iteration)
         num_satisfied_clauses = pso.num_satisfied_clauses(pso.global_best)
-        print("Satisfied clauses: ", num_satisfied_clauses)
+        print("Satisfied clauses:")
+        print(num_satisfied_clauses)
         print("Fitness: ", pso.global_best_fitness)
-        print()
 
     return (pso.global_best, num_satisfied_clauses, iteration)
 
