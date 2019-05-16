@@ -379,7 +379,7 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1
 
         for i, particle in enumerate(pso.swarm):
             #Update the particles position
-            pso.local_search_random_k(particle, pso.fitness, 0.45)
+            pso.local_search(particle, pso.fitness)
 
             #Update particle best
             pso.update_personal_best(particle, pso.fitness)

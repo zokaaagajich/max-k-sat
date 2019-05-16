@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import cm
 import argparse
 import os
 
@@ -23,25 +21,38 @@ files = []
 for algorithm in args.list:
     print(algorithm, '...')
     files.append((algorithm, "{1}.txt".format(algorithm,num)))
-    os.system('python3 {0} {1} {2} -i {3} > {4}.txt'.format(args.program, args.path, algorithm, args.max_iterations, num))
+    os.system('time python3 {0} {1} {2} -i {3} > {4}.txt'.format(args.program, args.path, algorithm, args.max_iterations, num))
     num = num + 1
     print('done!')
 
+
 color = iter(['-r','-g','-b','-y', '-k'])
-plt.xlabel('Broj iteracija')
-plt.ylabel('Broj zadovoljenih klauza')
+shape = iter(['o','x','v','^'])
+plt.xticks(fontsize = 14)
+plt.yticks(fontsize = 14)
+plt.xlabel('Broj iteracija', fontsize = 18)
+plt.ylabel('Broj zadovoljenih klauza', fontsize = 18)
+
 #read data and add to plt
 for algorithm, fileIn in files:
     with open(fileIn, 'r') as inputData:
         lines = inputData.readlines()
-        lines = [line.replace('\n','') for line in lines]
-        solution_str = filter(lambda elem: int(elem.isdigit()), lines)
-        solution = [int(number) for number in solution_str]
-        #print([*solution])
+        num_iteration = int(lines[-1].split()[1])
+
+        solution = [*map(lambda digit_str: int(digit_str),
+                     filter(lambda line: line.isdigit(),
+                     map(lambda l: l.rstrip('\n'),
+                        lines)))]
+        #print(solution)
+
         c = next(color)
-        plt.plot(range(1, len(solution)+1), solution, c, label = algorithm)
+        if num_iteration == 1:
+            c = c[1] + next(shape)
+        plt.plot(range(1, num_iteration+1), solution, c, label = algorithm)
+
     os.system('rm {0}'.format(fileIn))
 
+
 #plot
-legend = plt.legend(loc='best', shadow=True, fontsize='x-large')
+legend = plt.legend(loc='best', shadow=True, fontsize = 18)
 plt.show()

@@ -7,11 +7,12 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage[]{algorithm2e}
-
+\usepackage{graphicx}
 
 \usepackage[unicode]{hyperref}
 \hypersetup{colorlinks,citecolor=green,filecolor=green,linkcolor=blue,urlcolor=blue}
 
+\graphicspath{{./img/}}
 
 \title{Optimizacija maksimalne k-zadovoljivosti\\ populacionim metahauristikama\\ \small{Seminarski rad u okviru kursa\\ Računarska inteligencija\\ Matematički fakultet, Beograd}}
 
@@ -40,6 +41,7 @@
 \newpage
 
 
+
 \abstract{
 U ovom radu biće objedinjene i upoređene dve grupe algoritama za rešavanje
 optimizacionog problema maksimalne k-zadovoljivosti zasnovane na populacijama - 
@@ -53,16 +55,25 @@ implementiranih algoritama pokazale njihove razlike i mogućnosti.}
 \label{sec:uvod}
 %TODO prvi pasus
 
-Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza. Problem maksimalne k-zadovoljivosti može se definisati na sledeći način:\\ 
+Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza.
+Problem maksimalne k-zadovoljivosti može se definisati na sledeći način:\\ 
 
 Klauza $C_i$ dužine $k$ je disjunkcija $k$ literala: 
-$C_i = (x_1  \vee x_2 ... \vee x_k)$, gde je svaki literal promenjiva ili njegova negacija i može se pojavljivati više puta u izrazu.
-Cilj je pronaći istinitosne vrednosti promenjivih, valuaciju koja je vektor $\vec{v} = (x_1, x_2, ..., x_n) \in \{ 0,1 \}^n$ tako da ova valuacija maksimizuje broj zadovoljenih klauza u formuli $F$.\\
+$C_i = (x_1  \vee x_2 ... \vee x_k)$, gde je svaki literal promenjiva ili 
+njegova negacija i može se pojavljivati više puta u izrazu.
+Cilj je pronaći istinitosne vrednosti promenjivih, valuaciju koja je 
+vektor $\vec{v} = (x_1, x_2, ..., x_n) \in \{ 0,1 \}^n$ tako da ova valuacija 
+maksimizuje broj zadovoljenih klauza u formuli $F$.\\
 
-Ako valuacija zadovoljava formulu, onda se ona naziva modelom formule $F$. Max k-SAT problem može se definisati parom $(\Omega, SC)$, gde je $\Omega$ skup svih potencijalnih rešenja iz $\{0,1\}^n$, vektor $n$ promenjivih, a $SC:\Omega \rightarrow \mathbb{N}$, skor valuacije koji je jednak broju zadovoljenih klauza. Shodno ovome, problem max k-SAT je naći $\vec{v} \in \Omega$ za koje je $SC$ maksimalno:\\
+Ako valuacija zadovoljava formulu, onda se ona naziva modelom formule $F$. 
+Max k-SAT problem može se definisati parom $(\Omega, SC)$, gde je $\Omega$ skup svih
+potencijalnih rešenja iz $\{0,1\}^n$, vektor $n$ promenjivih, 
+a $SC:\Omega \rightarrow \mathbb{N}$, skor valuacije koji je jednak broju zadovoljenih klauza. 
+Shodno ovome, problem max k-SAT je naći $\vec{v} \in \Omega$ za koje je $SC$ maksimalno:\\
 $$\max_{\vec{v} \in \Omega}\{SC(\vec{v})\}$$
 
-Očigledno, ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$.\\ %TODO ref
+Očigledno, ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. 
+Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$.\\ %TODO ref
 
 %Pregled poglavlja
 Kroz dalja poglavlja pristupiće se rešavanju ovako formulisanog problema prvo evolucionim
@@ -96,9 +107,10 @@ Kriterijumi zaustavljanja mogu biti razni, ali smo koristili zaustavljanje postu
 
 \subsection{Pseudokod EA}
 \label{sec:ea_preudokod}
-U ovom poglavlju predstavićemo osnovni oblik algoritma na kojem se dalje zasnivaju ostale
-varijante EA algoritma, a u narednim poglavljima videćemo nekoliko varijanti pojedinačnih
-delova fitnes funkcije, selekcije, ukrštanja i mutacije koje će se nadalje koristiti. \\
+U ovom poglavlju biće predstavljen osnovni oblik EA algoritma na kojem se dalje
+zasnivaju ostale varijante. Potom će, u narednim poglavljima, biti opisane 
+svake od pojedinačnih delova koji čine ovaj algoritam, a koji će se nadalje koristiti: 
+fitnes funkcija, selekcija, ukrštanje i mutacija, kao i neke od adaptacija.\\
 
 \begin{algorithm}[H]
 \SetAlgoLined
@@ -117,21 +129,26 @@ delova fitnes funkcije, selekcije, ukrštanja i mutacije koje će se nadalje kor
   Mutacija izabranih jedinki\;
   Određivanje funkcije prilagođenosti populacije\;
  }
-\caption{Osnovni Evolutivni algoritam}
+\caption{Osnovni evolutivni algoritam}
 \end{algorithm}
-
 
 
 \subsection{Inicijalizacija rešenja}
 \label{sec:ea_init}
-Populaciju jedinki jedne generacije čini skup nizova binarnih cifara.
-Potrebno je da inicijalizujemo hromozome pseudoslučajnim brojevima \{0, 1\}. Veoma važnu ulogu igra odabir parametara.  Parametri mogu biti fiksni ili im se vrednosti mogu na određen način menjati iz generacije u generaciju.
-
+Populaciju jedinki jedne generacije čini skup hromozoma, odnosno rešenja problema.
+Hromozome možemo predstaviti na različite načine, ali će ovde biti korišćeno
+prirodno predstavljanje nizom binarnih cifara.
+Potrebno je da inicijalizujemo hromozome pseudoslučajnim brojevima \{0, 1\}.
+Veoma važnu ulogu igra odabir parametara. Parametri mogu biti fiksni ili im se vrednosti 
+mogu na određen način menjati iz generacije u generaciju.
 
 
 \subsection{Fitnes funkcija}
 \label{sec:ea_fitness}
-Tokom različitih varijanti EA koristile su se različite funkcije prilagođenosti. Prva fitness funkcija koja se sama nameće jeste broj zadovoljenih klauza, koju ćemo koristiti u FlipGA i ASAP algoritmima.
+U različitim verzijama EA koriste se različite funkcije prilagođenosti, koja je od suštinske
+važnosti za dobro rešavanje problema. 
+Prva fitness funkcija koja se sama nameće jeste broj zadovoljenih klauza, 
+koja će biti upotrebljena u FlipGA i ASAP algoritmima.
 
 	\begin{center}
 	$ f_{MAXSAT} (x) = \sum_{k=1}^{N} f(x, c_k) $
@@ -140,39 +157,36 @@ Tokom različitih varijanti EA koristile su se različite funkcije prilagođenos
 gde je $N$ ukupan broj klauza, $x$ predstavlja jedan hromozom $i$
 
 	\begin{center}
-	$ f(x, c_k) = \begin{cases} 1, & \mbox{ako je klauza } c_k \mbox{ zadovoljena hromozomom } x \\ 0, & \mbox{inače.} \end{cases} $
+$ f(x, c_k) = \begin{cases} 1, & \mbox{ako je klauza } c_k \mbox{ zadovoljena hromozomom } x \\ 0, & \mbox{inače.} \end{cases} $
 	\end{center}
-	
-Nešto malo komplikovanije funkcije prilagođenosti se koriste u SAWEA i RFEA algoritmima.
+Nešto komplikovanije funkcije prilagođenosti su SAW i REF koje se koriste
+u SAWEA i RFEA algoritmima.
 
 
 \subsubsection{SAW}
 \label{sec:fitness_saw}
-Eiben i van der Hauw su razvili evolutivni algoritam koji koristi stepenasto prilagođavanje težina (eng.~{\em stepwise adaptation of weights}), odnosno:
+Eiben i van der Hauw su razvili evolutivni algoritam koji koristi stepenasto prilagođavanje
+težina (eng.~{\em stepwise adaptation of weights}). Svakoj klauzi $c_i$ pridružuje se težina 
+$w_i$, u početku inicijalizovana sa jedan. Ove težine se potom, posle određenog vremena,
+ažuriraju po pravilu:  
 
 	\begin{center}
 	$ w_i = w_i + \Delta w $
 	\end{center}
-	
-gde $ w_i $ predstavlja težinu. \\
+gde je $\Delta w$:
+	\begin{center}
+	$ \Delta w = 1 - f(x^*, c_i) $
+	\end{center}
+gde $f$ označava da li je klauza $c_i$ zadovoljena trenutno najboljim
+hromozomom $x^*$. Stoga, $\Delta w$ može biti samo 1, ako $c_i$ nije zadovoljena, 
+ili 0, ako jeste. Iz ovoga se vidi da se težine nezadovoljenih klauza vremenom uvećavaju
+i time se pretraga usmerava ka njima. \\
 
-SAW funkcija prilagođenosti će nakon nekog vremena povećati težine nezadovoljenih klauza. Za jedan hromozom $ i $ definišemo funkciju prilagođenosti kao:\\
+Finalno za jedan hromozom $ i $ definišemo funkciju prilagođenosti kao:
 
 	\begin{center}
 	$ f_{SAW}(i) = w_1 f(i, c_1) + ... + w_N f(i, c_N) = \sum_{k=1}^{N} w_k f(i, c_k)	$
 	\end{center}
-	
-gde $w_k \geq 1 $ označava težinu.\\
-
-Inicijalno, težine su postavljene na vrednost 1. Za $ \Delta w $ se koristi formula:
-
-	\begin{center}
-	$ \Delta w = 1 - f(x^*, c_i) $
-	\end{center}
-	
-gde  je $x^*$ trenutno najbolji hromozom u populaciji. \\
-
-Težina $w_i$ klauze $c_i$ se povećava za 1 ako trenutna najbolja jedinka $x^*$ ne zadovoljava klauzu $c_i$, dok $\Delta w$ povećava težine nezadovoljenih klauza. Visoke težine su dobijene klauzama koje nisu zadovoljene duže vreme. 
 
 
 \subsubsection{REF}
@@ -185,8 +199,8 @@ Definišemo je koristeci $f_{MAXSAT}$ za hromozom $x$ na sledeći način:
 \begin{center}
 	$ f_{REF} (x) = f_{MAXSAT} (x) + \alpha r(x) $
 \end{center}
-
-gde je $\alpha > 0 $ predstavlja nivo uticanja funkcije $r$, $ r : \lbrace 0, 1 \rbrace ^ n \rightarrow [0, 1 \rbrace $. 
+gde je $\alpha > 0 $ predstavlja nivo uticanja funkcije $r$, 
+$ r : \lbrace 0, 1 \rbrace ^ n \rightarrow [0, 1 \rbrace $. 
 Za $\alpha = 0 $ $f_{REF} $ se ponaša kao $f_{MAXSAT} $. \\
 
 Funkcija $r$ za hromozom $x$ se definiše na sledeći način:
@@ -194,61 +208,64 @@ Funkcija $r$ za hromozom $x$ se definiše na sledeći način:
 \begin{center}
 $r(x) = \dfrac{1}{2} ( 1 + \dfrac{\sum_{i=1}^{N} K(x_i) v_i} {1+ \sum_{i=1}^{N} |v_i|})$
 \end{center}
-
 gde  $ K(0) = -1, K(1) = 1 $. Autori su predložili da ažuriranje $v_i$  izgleda ovako:
  
 \begin{center}
 	$ v_i = v_i - K(x^*) \sum_{k \in U_i(x^*)} w_k $
 \end{center}
-
-gde je $x^*$ trenutno najbolja jedinka, $U_i (x^*)$ je skup nezadovoljenih klauza u kojima se pojavljuje promenljiva $i$, $w_k$ je definisano na isti način kao i u \ref{sec:fitness_saw}. $v_i$ predstavlja težine promenljivih.\\
-
-Visoke pozitivne težine ukazuju da se za odgovarajuće promenljive preferira da budu 1, dok za negativne 0. Inicijalno, sve težine promenljivih su postavljene na vrednost 0.
+gde je $x^*$ trenutno najbolja jedinka, $U_i (x^*)$ je skup nezadovoljenih klauza 
+u kojima se pojavljuje promenljiva $i$, $w_k$ je definisano na isti način kao i u
+\ref{sec:fitness_saw}. $v_i$ predstavlja težine promenljivih. Visoke pozitivne težine 
+ukazuju da se za odgovarajuće promenljive preferira da budu 1, dok za negativne 0. 
+Inicijalno, sve težine promenljivih su postavljene na vrednost 0.
 
 
 \subsection{Selekcija}
 \label{sec:ea_selekcija}
-Selekcija predstavlja izbor jedinki iz trenutne populacije koje će biti korišćene za dobijanje naredne generacije. Obezbeđuje čuvanje i prenošenje dobrih osobina populacije. Koristili smo dve najpopularnije strategije selekcije: ruletska i turnirska.
+Selekcija predstavlja izbor jedinki iz trenutne populacije koje će biti korišćene za dobijanje
+naredne generacije. Ona obezbeđuje čuvanje i prenošenje dobrih osobina populacije. 
+U ovom radu koriste se dve najpopularnije strategije selekcije: ruletska i turnirska.
 
 \subsubsection{Ruletska selekcija}
 \label{sec:ea_ruletska}
-Ruletska selekcija (eng.~{\em roulette wheel selection}) \cite{vi_Janicic} je proces selekcije u kojem veće šanse da učestvuju u reprodukciji imaju prilagođenije jedinke.\
-
-Ako $f(i)$ vrednost funkcije prilagođenosti za jedinku $i$ , a $N$ broj jedinki u populaciji, verovatnoća da će jedinka $i$ biti izabrana da učestvuje u reprodukciji jednaka je:
+Ruletska selekcija (eng.~{\em roulette wheel selection}) \cite{vi_Janicic} je proces 
+selekcije u kojem veće šanse da učestvuju u reprodukciji imaju prilagođenije jedinke.
+Ako $f(i)$ vrednost funkcije prilagođenosti za jedinku $i$ , a $N$ broj jedinki u populaciji,
+verovatnoća da će jedinka $i$ biti izabrana da učestvuje u reprodukciji je:
 
 \begin{center}
 $p_i = \dfrac{f(i)}{\sum_{j}^{N} f(j)} $
 \end{center}
-
-Ruletsku selekciju smo primenili u FlipGA varijanti EA.
+Ovako definisana ruletska selekcija imaće primenu u FlipGA algoritmu.
 
 \subsubsection{Turnirska selekcija}
 \label{sec:ea_turnirska}
 U turnirskoj selekciji \cite{vi_Janicic} jedinke odigravaju turnire u kojima veće šansu za
 pobedu imaju one sa boljom prilagođenošću. Za jedan turnir bira se slučajno $k$ jedinki iz
 populacije. Pobednikom se smatra jedinka sa najvećom prilagođenošću. 
-Turnirsku selekciju smo primenili u REF varijanti EA.
+Turnirska selekcija primnjuje se u RFEA.
 
 \subsection{Ukrštanje}
  \label{sec:ea_ukrstanje}
-U ukrštanju \cite{vi_Janicic} učestvuju dve jedinke koje se nazivaju roditelji. 
-Rezultat ukrštanja je jedna nova jedinka ili dve nove jedinke koje nazivamo decom. 
-U samo jednoj varijanti EA, FlipGA, smo koristili ukrštanje, 
-a tačnije uniformno ukrštanje.\\
-
+Ukrštanje \cite{vi_Janicic} je proces u kome učestvuju dve jedinke koje se nazivaju roditelji. 
+Rezultat ukrštanja je jedna nova jedinka ili dve nove jedinke koje nazivamo decom, koje
+za cilj imaju kombinovanje gena oba roditelja radi postizanja boljih osobina.
+U FlipGA algoritmu biće korišćeno uniformno ukrštanje.
 Uniformno ukrštanje daje dva deteta. Kod ovog ukrštanja svaki bit prvog roditelja 
-se sa verovatnoćom $p$ prenosi na prvo dete i sa verovatnoćom $1-p$ na drugo dete. 
-Za verovatnoću $p$ smo uzeli vrednost 0.5. 
+se sa verovatnoćom $p$ prenosi na prvo dete, a sa verovatnoćom $1-p$ na drugo dete. 
+Za verovatnoću $p$ uzeta je vrednost 0.5. 
+
 
 \subsection{Mutacija}
  \label{sec:ea_mutacija}
-Mutacija \cite{vi_Janicic} se primenjuje nakon operatora ukrštanja (ako se on uopšte i primenjuje). 
+Mutacija \cite{vi_Janicic} se primenjuje nakon operatora ukrštanja 
+(ako se on uopšte i primenjuje). 
 To je operator koji sa određenom verovatnoćom menja jedan deo jedinke na određeni način. 
 Uloga mutacije je da spreči da jedinke u populaciji postanu suviše slične 
-i da pomogne u obnavljanju izgubljenog genetskog materijala.\\
-
+i da pomogne u obnavljanju izgubljenog genetskog materijala.
 U narednom delu biće izložene neke od mutacija koje će se koristiti u 
-različitim varijantama EA algoritma, koji će biti objašnjeni u poglavlju \ref{sec:ea_varijante}.
+različitim varijantama EA algoritama, koji će biti objašnjeni u poglavlju
+\ref{sec:ea_varijante}.
 
 \subsubsection{Slučajna mutacija}
 \label{sec:ea_slucajna_mutacija}
@@ -294,10 +311,10 @@ Primena ove mutacije nalazi se u RFEA algoritmu \ref{sec:ea_rfea}.
 
 \subsubsection{Lamarckian SEA-SAW mutacija}
 \label{sec:ea_lamarckian}
-Da bismo poboljšali SAWEA i RFEA koristimo Lamarckian mutaciju koju su predstavili 
+Da bi se poboljšali SAWEA i RFEA algoritmi koristi se Lamarckian mutacija koju su predstavili 
 de Jong i Kosters \cite{ea_without_table, ea_with_table}. 
-Ovakav operator mutacije liči na lokalnu pretragu. 
-Nakon dobijanja dece za novu populaciju bira se jedno dete $c$ na slučajan način.
+Ovakav operator mutacije liči na lokalnu pretragu, naime, 
+nakon dobijanja dece za novu populaciju bira se jedno dete $c$ na slučajan način.
 Takođe, kreiramo skup slučajno odabranih klauza. 
 Ako je svaka klauza u ovakvom skupu zadovoljena hromozomom $c$ onda se ne radi ništa. 
 Inače, izabere se jedna slučajna promenljiva u nezadovoljenoj klauzi i mutira se.
@@ -305,17 +322,22 @@ Inače, izabere se jedna slučajna promenljiva u nezadovoljenoj klauzi i mutira 
 
 \subsection{Politika zamene generacija}
  \label{sec:ea_zamena}
-Politika zamene generacije \cite{vi_Janicic, ea_without_table} opisuje kako se od tekuće generacije dobija nova. Osnovna podela po ovom kriterijumu je na generacijske genetske algoritme (eng.~{\em generational genetic algorithm}) i genetske algoritme stabilnog stanja (eng.~{\em steady state genetic algorithm}). \\
+Politika zamene generacije \cite{vi_Janicic, ea_without_table} opisuje kako se od tekuće
+generacije dobija nova. Osnovna podela po ovom kriterijumu je na generacijske genetske
+algoritme $(\mu, \lambda)$ (eng.~{\em generational genetic algorithm}) i genetske algoritme
+stabilnog stanja $(\mu + \lambda)$ (eng.~{\em steady state genetic algorithm}), gde $\mu$
+predstavlja broj pojedinaca u populaciji, a $\lambda$ broj dece. \\
  
-U slučaju generacijskih genetskih algoritama, nova generacija se dobija tako što se selekcijom bira dovoljno jedinki iz tekuće generacije da se napravi cela nova generacija. Izabrane jedinke se ukrštaju i mutiraju i tako dobijena generacija zamenjuje staru. \\
+U slučaju generacijskih genetskih algoritama, nova generacija se dobija tako što se 
+seelekcijom bira dovoljno jedinki iz tekuće generacije da se napravi cela nova generacija.
+Izabrane jedinke se ukrštaju i mutiraju i tako dobijena generacija zamenjuje staru.
+$(\mu, \lambda)$ - od $\mu$ roditelja kreira se $\lambda$ dece i 
+za novu generaciju uzimaju se najbolji međ decom.\\ 
  
-U slučaju genetskih algoritama stabilnog stanja, čim se izabere par roditelja, vrši se ukštanje i mutacija, a potom umetanje potomaka u populaciju u skladu sa nekom politikom zamene. \\
- 
-U ovom radu se pored običnog generacijskog genetskog algoritma koriste još dve vrste: $(\mu, \lambda) $ i $(\mu + \lambda)$, gde $\mu$ predstavlja broj pojedinaca u populaciji, a $\lambda$ broj dece. \\
- 
-$(\mu, \lambda)$ - od $\mu$ roditelja kreira $\lambda$ dece i za novu generaciju se uzimaju  najbolji od dece.\\
- 
-$(\mu + \lambda)$ - od $\mu$ roditelja kreira $\lambda$ dece i bira najbolje jedinke iz skupa roditelja i dece zajedno.
+U slučaju genetskih algoritama stabilnog stanja, čim se izabere par roditelja, 
+vrši se ukštanje i mutacija, a potom umetanje potomaka u populaciju u 
+skladu sa nekom politikom zamene. $(\mu + \lambda)$ - od $\mu$ roditelja 
+kreira se $\lambda$ dece i biraju se najbolje jedinke iz skupa roditelja i dece zajedno. 
 
 
 \subsection{Lokalna pretraga flip heuristikom}
@@ -362,7 +384,8 @@ okretanja bitova $maxFlip$.\\
 Ovakva lokalna pretraga usporava celokupno izvršavanje algoritma, ali sa druge strane, 
 umnogo ubrzava konvergenciju ka lokalnom optimumu. Ovu lokalnost razbijaju slučajni faktori
 ukrštanja i mutacije evolutivnih algoritama, u čijem se prisustvu obično koristi. 
-Njena primena prvi put predstavljena je u FlipGA algoritmu o kome će biti reči u sledećem poglavlju.
+Njena primena prvi put predstavljena je u FlipGA algoritmu o kome će biti reči 
+u sledećem poglavlju.
 
 
 \subsection{Varijante EA algoritma}
@@ -373,7 +396,7 @@ Negde čak nećemo imate sve navedene operatove, već samo neke od njih.
 U tabeli \ref{tab:EA} možemo da vidimo osnovna svojstva varijanti evolutivnog algoritma 
 koji su implementirani, odnosno šta koristi svaki od pobrojanih algoritama.
 Zajedničko za sve vrste EA je reprezentacija rešenja kao niz bitova i
-inicijalizacija koja se vrši na slučajan način.\\
+inicijalizacija koja se vrši na slučajan način.
  
 \begin{table}[h!]
 \centering
@@ -385,7 +408,7 @@ inicijalizacija koja se vrši na slučajan način.\\
  politika zamene & $(1, \lambda^*)$ & stabilno stanje & generacijski & $(1 + 1)$ \\
  selekcija & - & turnirska & ruletska & - \\
  fitnes funkcija &	$f_{SAW}$ & $f_{REF}$ & $f_{MAXSAT}$ & $f_{MAXSAT}$ \\
- ukrštanje & - & - & uniform & - \\
+ ukrštanje & - & - & uniformno & - \\
  mutacija & jednog bita & zasnovana na znanju & slučajna & slučajno-prilagodljiva \\
  lokalna pretraga & - & - & flip heuristika & flip heuristika \\
  adaptacija & fitnes & fitnes &  - & tabu lista \\
@@ -403,7 +426,8 @@ biće prikazani u polavlju. \ref{sec:ea_rezultati}.
 SAWEA je evolutivni algoritam koji koristi stepenasto prilagođavanje težina 
 (eng.~{\em Stepwise Adaptation of Weights}) \cite{ea_with_table, ea_without_table} 
 koji su razvili Eiben i van der Hauw. 
-Prema preporuci autora koristi se politika zamene generacije $(1,\lambda^*)$ \ref{sec:ea_zamena} i mutacija jednog bita \ref{sec:ea_mutacija_one}. \\
+Prema preporuci autora koristi se politika zamene generacije $(1,\lambda^*)$
+ \ref{sec:ea_zamena} i mutacija jednog bita \ref{sec:ea_mutacija_one}. \\
 
 S obzirom da je politika zamene $(1,\lambda^*)$ znamo da je populacija veličine jedan,
 zbog čega nije moguće vršiti selekciju i ukrštanje, već samo mutaciju. 
@@ -426,14 +450,15 @@ SAWEA algoritam.
 
 \subsubsection{RFEA}
 \label{sec:ea_rfea}
-%TODO ZORANA ovo bas nije najjasnije napisano...
-Gotlieb i Vos \cite{GotVos98_f_ref, ea_with_table, ea_without_table} su predstavili koncept funkcija prerada (eng.~{\em refining functions}). Više u korišćenoj funkciji prilagođenosti \ref{sec:fitness_rfea}.
-U našem algoritmu mi zapravo koristimo SAWEA u kombinaciji sa klasičnim RFEA. \\
-
-RFEA ima populaciju veličine 4. Koristi turnirsku selekciju \ref{sec:ea_turnirska} veličine 2 i politiku zamene generacije stabilnog stanja \ref{sec:ea_zamena} sa eliminacijom najgore jedinke. Takođe je korišćena eliminacija duplikata, tj. dete je odbijeno ukoliko je već u populaciji.
+Gotlieb i Vos \cite{GotVos98_f_ref, ea_with_table, ea_without_table} predstavili su koncept
+funkcija prerada (eng.~{\em refining functions}) i uveli $f_{REF}$ funkciju prilagođenosti
+opisanu u delu \ref{sec:fitness_rfea}. 
+RFEA koristi populaciju veličine četiri, turnirsku selekciju \ref{sec:ea_turnirska}
+veličine dva i politiku zamene generacije stabilnog stanja \ref{sec:ea_zamena} 
+sa eliminacijom najgore jedinke. 
+Takođe je korišćena eliminacija duplikata, tj. dete je odbijeno ukoliko je već u populaciji.
 Jedini variacioni operator je mutacijski operator zasnovan na znanju \ref{sec:ea_mutacija_znanje}.
-Ne zaboraviti nakon ovoga izvršiti ažuriranje težina klauza.
-
+Pošto se koriste težine potrebno je nakon određenog vremena izvršiti njihovo ažuriranje.
 %TODO poboljsanje Lamarckian SEA-SAW mutacijom?
 
 
@@ -474,11 +499,11 @@ ni lokalna pretraga. Veličina tabu liste po prepurici autora je 10.\\
 U tabeli \ref{tab:ea_tabu_list} geni duž prve i četvrte kolone su svuda isti geni i te
 se kolone neće zamrznuti, odnosno u listu zamrznutih gena (eng.~{\em frozen}) na pozicije 1 i 4 upisuje se
 nula, dok su na ostalim mestima, gde se geni menjaju, jedinice. 
-Ova lista je inicijalno popunjena nulama. \\
+Ova lista je inicijalno popunjena nulama.
 
 \begin{table}[h!]
 \centering
-\captionof{table}{Tabu lista}\label{tab:ea_tabu_list} 
+\captionof{table}{Tabu lista i zamrznuti geni}\label{tab:ea_tabu_list} 
 \begin{tabular}{|*{6}{c|}}
  \hline
   1 & 1 & 0 & 0 & ... & 0 \\ \hline
@@ -550,7 +575,9 @@ u zavisnosti od prilagođenosti izračunate sa $f_{MAXSAT}$.
 
 \subsection{Rezultati}
 \label{sec:ea_rezultati}
-Svi algoritmi pokretani su pet puta sa istim parametrima i beležen je prosečan broj zadovoljenih klauza, pri čemu podebljan rezultat označava da se do rešenja dolazilo u prvoj iteraciji. \\
+Svi algoritmi pokretani su pet puta sa istim parametrima i beležen je prosečan broj
+zadovoljenih klauza, pri čemu podebljan rezultat označava da se do rešenja 
+dolazilo u prvoj iteraciji.
 
 \begin{table}[h!]
 \centering
@@ -602,6 +629,17 @@ Svi algoritmi pokretani su pet puta sa istim parametrima i beležen je prosečan
  \hline
 \end{tabular} 
 \end{table}
+
+
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{ea-aim-50-6_0-yes}
+\caption{Broj zadovoljenih klauza kroz iteracije za aim-50-6\_0-yes}
+\end{figure}
+
+
 
 
 \newpage
@@ -727,7 +765,7 @@ PSO-LS je osnovna varijanta algoritma koji ne koristi lokalnu pretragu, već sig
 
 \subsubsection{PSOSAT}
 \label{sec:psosat}
-PSOSAT koristi lokalnu pretragu, ali ne i $F_{SAW}$, pa je funkcija cilja broj zadovoljenih klauza. Mana ovog algoritma je teško izlaženje iz lokalnih optimuma zbog korišćenja fitnes funkcije koja ne raznanaje težinu klauza.
+PSOSAT koristi lokalnu pretragu, ali ne i $F_{SAW}$, pa je funkcija cilja broj zadovoljenih klauza. Mana ovog algoritma je teško izlaženje iz lokalnih optimuma zbog korišćenja fitnes funkcije koja ne razaznaje težinu klauza.
 
 \subsubsection{WPSOSAT}
 \label{sec:wpsosat}
