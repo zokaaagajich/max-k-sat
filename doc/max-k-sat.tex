@@ -1,4 +1,5 @@
-\documentclass{article}
+\documentclass[a4paper]{article}
+
 \usepackage[utf8]{inputenc}
 \usepackage[serbian]{babel}
 \usepackage{listings}
@@ -8,16 +9,17 @@
 \usepackage{amssymb}
 \usepackage[]{algorithm2e}
 \usepackage{graphicx}
-
+\usepackage{xcolor,colortbl}
 \usepackage[unicode]{hyperref}
 \hypersetup{colorlinks,citecolor=green,filecolor=green,linkcolor=blue,urlcolor=blue}
+
+\definecolor{Gray}{gray}{0.82}
 
 \graphicspath{{./img/}}
 
 \title{Optimizacija maksimalne k-zadovoljivosti\\ populacionim metahauristikama\\ \small{Seminarski rad u okviru kursa\\ Računarska inteligencija\\ Matematički fakultet, Beograd}}
 
 \author{David Dimić, Zorana Gajić \\ daviddimic@hotmail.com, zokaaa\_gajich@bk.ru}
-
 \date{Maj 2019.}
 
 % text width and height
@@ -37,80 +39,99 @@
 \begin{document}
 
 \maketitle
-\tableofcontents
-\newpage
-
 
 
 \abstract{
-U ovom radu biće objedinjene i upoređene dve grupe algoritama za rešavanje
+U ovom radu biće objedinjene, implementirane i upoređene dve grupe algoritama za rešavanje
 optimizacionog problema maksimalne k-zadovoljivosti zasnovane na populacijama - 
-evolucioni algoritmi implementirani u nekoliko različitih varijanti SAWEA, RFEA, FlipGA
+evolucioni algoritmi razvijeni u nekoliko različitih varijanti SAWEA, RFEA, FlipGA
 i ASAP, i rojevi čestica PSO sa verzijama PSO-LS, PSOSAT i WPSOSAT. Biće iznete njihove
 osobine, prednosti, mane i unapređenja, da bi se na kraju, na konkretnim rezultatima 
 implementiranih algoritama pokazale njihove razlike i mogućnosti.}
 
+\setcounter{tocdepth}{2} 
+\tableofcontents
+
+\newpage
+
 
 \section{Uvod}
 \label{sec:uvod}
-%TODO prvi pasus
-
-Data je formula $F$ u KNF obliku sa $n$ promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza.
-Problem maksimalne k-zadovoljivosti može se definisati na sledeći način:\\ 
-
+Na početku, potrebno je jasno formulisati problem da bi se pristupilo njegovom rešavanju.
+Problem maksimalne k-zadovoljivosti može se definisati na sledeći način: 
+Neka je data je formula $F$ u KNF obliku sa $n$ 
+promenjivih $(x_1, x_2, ..., x_n)$ i $m$ klauza.
 Klauza $C_i$ dužine $k$ je disjunkcija $k$ literala: 
-$C_i = (x_1  \vee x_2 ... \vee x_k)$, gde je svaki literal promenjiva ili 
+$C_i = (x_1  \vee x_2 ... \vee x_k)$, gde je svaki literal promenljiva ili 
 njegova negacija i može se pojavljivati više puta u izrazu.
-Cilj je pronaći istinitosne vrednosti promenjivih, valuaciju koja je 
+Cilj je pronaći istinitosne vrednosti promenljivih, valuaciju koja je 
 vektor $\vec{v} = (x_1, x_2, ..., x_n) \in \{ 0,1 \}^n$ tako da ova valuacija 
 maksimizuje broj zadovoljenih klauza u formuli $F$.\\
 
 Ako valuacija zadovoljava formulu, onda se ona naziva modelom formule $F$. 
 Max k-SAT problem može se definisati parom $(\Omega, SC)$, gde je $\Omega$ skup svih
-potencijalnih rešenja iz $\{0,1\}^n$, vektor $n$ promenjivih, 
+potencijalnih rešenja iz $\{0,1\}^n$, vektor $n$ promenljivih, 
 a $SC:\Omega \rightarrow \mathbb{N}$, skor valuacije koji je jednak broju zadovoljenih klauza. 
-Shodno ovome, problem max k-SAT je naći $\vec{v} \in \Omega$ za koje je $SC$ maksimalno:\\
+Shodno ovome, problem max k-SAT je naći $\vec{v} \in \Omega$ za koje je $SC$ maksimalno:
 $$\max_{\vec{v} \in \Omega}\{SC(\vec{v})\}$$
 
 Očigledno, ima $2^n$ potencijalnih rešenja koji zadovoljavaju formulu $F$. 
-Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$.\\ %TODO ref
+Dokazano je da je problem max k-SAT je NP-kompletan za svako $k>2$ \cite{NP-complete}.\\
 
 %Pregled poglavlja
 Kroz dalja poglavlja pristupiće se rešavanju ovako formulisanog problema prvo evolucionim
 algoritmima (EA) \ref{sec:ea}, gde će biti reči o osnovnim osobinama, 
 biće dat njegov pseudokod i objašnjenja svake od akcija koje se preduzimaju. 
-Potom će biti iznete nekoliko verzija  algoritma i njihova unapređenja u delu
-\ref{sec:ea_varijante} i prikazane njihove mogućnosti
+Potom će biti iznete nekoliko verzija  algoritma
+\footnote{Sve implementacije dostupne su na GitHub nalogu autora: \\
+\url{https://github.com/zokaaagajich/max-k-sat}} 
+i njihova unapređenja u delu \ref{sec:ea_varijante} i prikazane njihove mogućnosti
 u rezultatima \ref{sec:ea_rezultati}. U drugom delu biće predstavljena optimizacija
 rojem čestica (PSO) \ref{sec:pso} u njegovoj diskretnoj formi sa nekoliko različitih verzija
 \ref{sec:pso_varijante} koji će biti upoređeni u rezultatima \ref{sec:pso_rezultati}.
 
 
-
-%TODO ZORANA
 \section{Evolucioni algoritmi (EA)}
 \label{sec:ea}
+Evolucioni algoritmi \cite{vi_Janicic} bazirani su na Darvinovoj teoriji evolucije, 
+u kojoj unutar jedne populacije najčešće opstaju najbolje prilagođene jedinke. 
+Reprezentacija jedinke naziva se hromozom ili genotip. 
+Cilj je naći vrednost za koju zadata funkcija cilja dostiže svoj ekstremum 
+ili vrednost koja je dovoljno blizu ekstremuma. Hromozomi su obično predstavljeni
+nizovima nula i jedinica, ali moguće su i druge reprezentacije. 
+Postupak se odvija kroz generacije.\\
 
-Genetski algoritmi \cite{vi_Janicic} su bazirani na Darvinovoj teoriji evolucije, u kojoj unutar jedne populacije najčešće opstaju najbolje prilagođene jedinke. Reprezentacija jedinke naziva se hromozom ili genotip. Cilj je naći vrednost za koju zadata funkcija cilja dostiže svoj ekstremum ili vrednost koja je dovoljno blizu ekstremuma. Potencijalna rešenja, tj. jedinke obično su predstavljene nizovima nula i jedinica, ali moguće su i druge reprezentacije. Postupak se odvija kroz generacije.\\
+Tokom izvršavanja algoritma u svakoj generaciji postoji isti broj jedinki i za svaku od
+njih izračunava se njihov kvalitet, odnosno funkcija prilagođenosti.
+Ova funkcija naziva se i fitnes funkcija.
+Iz jedne generacije se na osnovu vrednosti fitnes funkcije, 
+kroz proces selekcije biraju jedinke koje će biti iskorišćene za stvaranje novih jedinki. 
+One kvalitetnije se biraju sa većom verovatnoćom. 
+Videćemo različite tehnike selekcija kao što su turnirska i ruletska. \\
 
-U svakoj generaciji postoji isti broj jedinki i za svaku od njih računa se njen kvalitet. Funkcija koja pridužuje te vrednosti jedinkama naziva se funkcija prilagođenosti ili fitnes funkcija. Iz jedne generacije se na osnovu vrednosti fitnes funkcije, kroz proces selekcije biraju jedinke koje će biti iskorišćene za stvaranje novih jedinki. One kvalitetnije se biraju sa većom verovatnoćom. Videćemo različite tehnike selekcija kao što su turnirska i ruletska. \\
+Nad izabranim jedinkama primenjuju se genetski operatori ukrštanja
+i tako se dobijaju nove jedinke. Ukrštanjem se od dve jedinke dobija nova (ili dve nove) sa
+genetskim materijalom koji je dobijen neposredno od roditelja, 
+tj. od polaznih jedinki. U ovom radu korišćeno je samo uniformno ukrštanje. \\
 
-Nad izabranim jedinkama primenjuju se genetski operatori ukrštanja i tako se dobijaju nove jedinke. Ukrštanjem se od dve jedinke dobija nova (ili dve nove) sa genetskim materijalom koji je dobijen neposredno od roditelja, tj. od polaznih jedinki. U ovom radu smo koristili samo uniformno ukrštanje. \\
+Operatorom mutacije može da se modifikuje deo polazne jedinke i dobije nov genetski materijal. 
+U svakoj generaciji može da dođe do rekombinacije gena zbog koje se 
+javlja sličnost ali i različitost između jedinki iste generacije. 
+Biće izložene različite vrste mutacija: slučajna, zasnovana na znanju, jednog bita i ostale. \\
 
-Operatorom mutacije može da se modifikuje deo polazne jedinke. U svakoj generaciji, dakle, može da dođe do rekombinacije gena zbog koje se javlja sličnost ali i različitost između jedinki iste generacije. Videćemo različite vrste mutacija: slučajna, zasnovana na znanju, jednog bita i ostale. \\
+Politika zamene generacija određuje kako se od postojećih jedinki i 
+njihovog potomstva kreira nova generacija. Neke jedinke u novoj generaciji mogu biti bolje,
+a neke lošije od jedinki u prethodnoj generaciji. \\
 
-Politika zamene generacija određuje kako se od postojećih jedinki i njihovog potomstva kreira nova generacija. Neke jedinke u novoj generaciji mogu biti bolje, a neke lošije od jedinki u prethodnoj generaciji. \\
+Kriterijumi zaustavljanja mogu biti razni. U ovom radu korišćeno je zaustavljanje 
+kada se dostigne maksimalan broj unapred zadatih iteracija, ili kada sve klauze 
+formule $F$ postanu zadovoljene. 
+Tada je formula u potpunosti zadovoljena pa nema potrebe za daljom pretragom.\\
 
-Kriterijumi zaustavljanja mogu biti razni, ali smo koristili zaustavljanje postupka kada se dostigne zadati broj iteracija.
-
-
-
-\subsection{Pseudokod EA}
-\label{sec:ea_preudokod}
-U ovom poglavlju biće predstavljen osnovni oblik EA algoritma na kojem se dalje
-zasnivaju ostale varijante. Potom će, u narednim poglavljima, biti opisane 
-svake od pojedinačnih delova koji čine ovaj algoritam, a koji će se nadalje koristiti: 
-fitnes funkcija, selekcija, ukrštanje i mutacija, kao i neke od adaptacija.\\
+Naredni pseudok\^ od \ref{alg:EA} sumira objašnjene faze osnovnog EA na kojem se dalje
+zasnivaju ostale varijante. U narednim poglavljima biće opisan 
+svaki od pojedinačnih delova koji čini ovaj algoritam, a koji će se nadalje koristiti: 
+fitnes funkcija, selekcija, ukrštanje i mutacija, kao i neke od njihovih adaptacija.\\
 
 \begin{algorithm}[H]
 \SetAlgoLined
@@ -124,12 +145,12 @@ fitnes funkcija, selekcija, ukrštanje i mutacija, kao i neke od adaptacija.\\
  t = 0; \tcp*[h]{tekuća iteracija}\\
  \While{nije zadovoljen uslov zaustavljanja}{
   t = t + 1\;
+  Određivanje funkcije prilagođenosti svake jedinke\;
   Selekcija jedinki za primenu genetskih operatora\;
   Ukrštanje za izabrane parove jedinki\;
   Mutacija izabranih jedinki\;
-  Određivanje funkcije prilagođenosti populacije\;
  }
-\caption{Osnovni evolutivni algoritam}
+\caption{Osnovni evolutivni algoritam}\label{alg:EA}
 \end{algorithm}
 
 
@@ -255,6 +276,20 @@ Uniformno ukrštanje daje dva deteta. Kod ovog ukrštanja svaki bit prvog rodite
 se sa verovatnoćom $p$ prenosi na prvo dete, a sa verovatnoćom $1-p$ na drugo dete. 
 Za verovatnoću $p$ uzeta je vrednost 0.5. 
 
+\begin{table}[h!]
+\centering
+\captionof{table}{Uniformno ukrštanje}\label{tab:ea_ukrstanje} 
+\begin{tabular}{|*{6}{c|}}
+  \multicolumn{6}{c}{Dva roditelja} \\ \hline
+  \rowcolor{Gray}  
+  1 & 0 & 0 & 0 & 1 & 1 \\ \hline
+  0 & 0 & 1 & 1 & 0 & 1 \\ \hline
+  \multicolumn{6}{c}{Dva deteta} \\ \hline
+  \cellcolor{Gray} 1 & 0 & 1 & \cellcolor{Gray} 0 & 0 & \cellcolor{Gray} 1 \\ \hline
+  0 & \cellcolor{Gray} 0 & \cellcolor{Gray} 0 & 1 & \cellcolor{Gray} 1 & 1 \\ \hline
+\end{tabular}
+\end{table}
+
 
 \subsection{Mutacija}
  \label{sec:ea_mutacija}
@@ -269,18 +304,17 @@ različitim varijantama EA algoritama, koji će biti objašnjeni u poglavlju
 
 \subsubsection{Slučajna mutacija}
 \label{sec:ea_slucajna_mutacija}
-Najjednostavnija vrsta mutacije je slučajna mutacija (eng.~{\em random mutation}).
-Primenjuje se nad celim hromozomom tako što za svaki gen 
-na slučajan način biramo vrednost $t \in [0,1]$ i ako je ta vrednost manja od zadatog
-parametra mutiranja $mutation\_rate$ tj. $ t < mutation\_rate$ 
-onda vršimo invertovanje tog gena.
+Slučajna mutacija (eng.~{\em random mutation}) primenjuje se nad celim hromozomom 
+tako što za svaki gen na slučajan način bira vrednost $t \in [0,1]$ 
+i ako je ta vrednost manja od zadatog parametra mutiranja $mutation\_rate$ 
+tj. $ t < mutation\_rate$ onda se vrši invertovanje tog gena.
 Ovakav operator mutiranja biće korišćen u FlipGA algoritmu \ref{sec:ea_flipga}.
 
 \subsubsection{Mutacija jednog bita}
 \label{sec:ea_mutacija_one}
 Za razliku od slučajne mutacije koja je prolazila kroz ceo hromozom i menjala gene u
 zavisnosti od slučajnog broja, u mutaciji jednog bita (eng.~{\em mutation one operator})
-bira se proizvoljno tačno jedan gen i on se potom menja. 
+bira se proizvoljno tačno jedan gen koji se potom menja. 
 Ova mutacija koristiće se u SAWEA verziji \ref{sec:ea_sawea}.
 
 \subsubsection{Slučajno-prilagodljiva mutacija}
@@ -306,7 +340,7 @@ zadovoljenih klauza.\\
 Za dati hromozom, koji predstavlja
 tekuće rešenje, možemo naći skup nezadovoljenih klauza. 
 Iz skupa nezadovoljenih klauza na slučajan način biramo tačno jednu klauzu, 
-a potom iz nje, ponovo, biramo jednu njenu promenjivu koju ćemu mutirati. 
+a potom iz nje, ponovo, biramo jednu njenu promenljivu koju ćemu mutirati. 
 Primena ove mutacije nalazi se u RFEA algoritmu \ref{sec:ea_rfea}.
 
 \subsubsection{Lamarckian SEA-SAW mutacija}
@@ -321,7 +355,9 @@ Inače, izabere se jedna slučajna promenljiva u nezadovoljenoj klauzi i mutira 
 
 
 \subsection{Politika zamene generacija}
- \label{sec:ea_zamena}
+\label{sec:ea_zamena}
+Jedna od podgrupa EA su evolucione strategije ES (eng.~{\em Evolution Strategy}) koje
+koriste selekciju, mutaciju i neku od politika zamene.
 Politika zamene generacije \cite{vi_Janicic, ea_without_table} opisuje kako se od tekuće
 generacije dobija nova. Osnovna podela po ovom kriterijumu je na generacijske genetske
 algoritme $(\mu, \lambda)$ (eng.~{\em generational genetic algorithm}) i genetske algoritme
@@ -415,6 +451,7 @@ inicijalizacija koja se vrši na slučajan način.
  \hline
 \end{tabular}
 \end{table}
+
 
 U narednom delu biće opisani svaki od navedenih algoritama iz tabele \ref{tab:EA}.
 Obratiće se pažnja na njihove prednosti i mane, a praktični rezultati implementacija
@@ -577,19 +614,19 @@ u zavisnosti od prilagođenosti izračunate sa $f_{MAXSAT}$.
 \label{sec:ea_rezultati}
 Svi algoritmi pokretani su pet puta sa istim parametrima i beležen je prosečan broj
 zadovoljenih klauza, pri čemu podebljan rezultat označava da se do rešenja 
-dolazilo u prvoj iteraciji.
+dolazilo u prvoj iteraciji. Maksimalan broj iteracija postavljen je na 1000, a vrednost
+za $maxFlip$ u lokalnoj pretrazi FlipGA algoritma na 30000.\\
 
-\begin{table}[h!]
-\centering
-\captionof{table}{Parametri}\label{tab:ea_parametri} 
-\begin{tabular}{ |p{3cm}|p{2cm}| }
- \hline
- Parametar 	& Vrednost \\ \hline
- Broj iteracija & 1000 \\ \hline
- max flip & 30000 \\  \hline
-\end{tabular}
-\end{table}
-
+Prvo su pokrenute nezadovoljene instance gde su testovi takvi da je broj zadovoljenih klauza
+za jedan manji od ukupnog broja klauza. Pri ovim instancama u tabeli \ref{tab:ea_UNSAT}
+prikazani su rezultati izvršavanja programa. Vidi se da su SAWEA i RFEA retko dolazili
+do rešenja, pri čemu se RFEA, očekivano, pokazao kao nešto bolji, sa cenom sporijeg
+izvršavanja. Dalje su, FlipGA i ASAP u potpunosti ispunili očekivanja i rešili sve instance,
+pri čemu prednjači ASAP gledajući vremenski faktor, kako je bilo najavljeno u opisu ovog 
+algoritma \ref{sec:ea_asap}. ASAP koristi populaciju veličine jedan, u čemu leži njegovo
+ubrzanje i lokalnu pretragu u kombinaciji sa tabu listom za izbegavanje lokalnih optimuma.
+Zanimljivo je primetiti da se sa ova dva algoritma uglavnom u prvoj iteraciji dolazilo do 
+rešenja.\\
 
 \begin{table}[h!]
 \centering
@@ -606,6 +643,41 @@ dolazilo u prvoj iteraciji.
  \hline
 \end{tabular}
 \end{table}
+
+
+Za pokrenutu jednu nezadovoljivu instancu na slici \ref{img:ea_no1} 
+jasno se vidi razlika između ovih algoritama i njihov put ka pronalaženju rešenja.
+Najduži put imao je SAWEA u 40 iteracija, no vremenski on je među boljima sa 0,07s.
+Najefikasniji je ASAP koji je za jednu iteraciju i 0,06s došao do rešenja.
+FlipGA je nešto sporiji sa 0,17s što je cena pozivanja lokalne pretrage nad većom
+populacijom. Dok je RFEA sa 1,34s vremenski najgori.\\
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{ea-aim-50-2_0-no}
+\caption{Broj zadovoljenih klauza kroz iteracije za aim-50-2\_0-no}\label{img:ea_no1}
+\end{figure}
+
+Na slici \ref{img:ea_no2} prikazano je rešavanje nešto teže nezadovoljive instance.
+I dalje su za čitavu klasu razlike FlipGA (6,19s) i ASAP (0,59s) pri čemu se još jasnije 
+vidi značaj ASAP unapređenja. RFEA (649,24s) pokazao se još gori za teže instance. 
+On, istina, monotono raste pri uspehu u pretrazi, za razliku od SAWEA (1,84s) koji više 
+nasumično luta, ali kada se pogleda vreme izvršavanja, to definitivno nije vredno.
+Takođe, SAWEA u svom lutanju uspeva da dođe do rešenja, za razliku od RFEA
+koji je očigledno dostigao svoj lokalni optimum.\\
+ 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{ea-aim-200-2_0-no}
+\caption{aim-200-2\_0-no}\label{img:ea_no2}
+\end{figure}
+
+Potom je vršeno poređenje za zadovoljive testove, gde su rezultati u tabeli \ref{tab:ea_SAT}.
+Iz rezultata vidi se slična situacija kao i u prethodnoj grupi, samo ovoga puta 
+SAWEA i RFEA daleko odstupaju od preostala dva unapređenja lokalnom pretragom.
+RFEA se po rezultatima čini nešto bolji, ali kada je vreme izvršavanja u pitanju, to
+apsolutno nije opravdano. Slično je i pri poređenju FlipGA i ASAP gde su oba postigli
+iste rezultate u svim instancama, pri čemu je ASAP neuporedivo brži.\\
 
 \begin{table}[h!]
 \centering
@@ -631,15 +703,18 @@ dolazilo u prvoj iteraciji.
 \end{table}
 
 
-
+Jedna instanca zadovoljivih problema prikazana je na slici \ref{img:ea_yes1}.
+U skladu sa uočenom monotonošću RFEA (12,27s) koja se dobija zahvaljujući komplikovanijem
+izračunavanju funkcije prilagođenosti $f_{REF}$ uspela je da ga istakne pre 
+SAWEA (0,86s) po broju iteracija. Ali po brzini
+izvršavanja i dalje ostaje najgore rangiran. ASAP (0,11s) i FlipGA (0,61s) 
+došli su do rešenja u prvoj iteraciji. \\
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\textwidth]{ea-aim-50-6_0-yes}
-\caption{Broj zadovoljenih klauza kroz iteracije za aim-50-6\_0-yes}
+\caption{aim-50-6\_0-yes}\label{img:ea_yes1}
 \end{figure}
-
-
 
 
 \newpage
@@ -647,8 +722,11 @@ dolazilo u prvoj iteraciji.
 
 \section{Optimizacija rojem čestica (PSO)}
 \label{sec:pso}
-Optimizacija rojem čestica (Particle swarm optimization – PSO) je jedna od tehnika pretraživanja zasnovana na populaciji kao što je genetski algoritam, ali ne koriste evolutivne algoritme kao što su mutacija i ukrštanje.
-PSO algoritmi su 1995. godine uveli Kenedi i Eberhart kao alternativu standardnim genetskim algoritmima. \\
+Optimizacija rojem čestica (Particle swarm optimization – PSO) je jedna od 
+tehnika pretraživanja zasnovana na populaciji kao što je genetski algoritam, ali
+originalno ne koriste evolutivne procedure kao što su mutacija i ukrštanje.
+PSO algoritmi su 1995. godine uveli Kenedi i Eberhart kao 
+alternativu standardnim genetskim algoritmima. \\
 
 Optimizacija rojem čestica je algoritam zasnovan na ponašanju pojedinačnih jedinki unutar određene grupe (na primer, jata ptica ili roja insekata). Ukoliko se, vođeno instiktom, jato prica uputi u određenom smeru u potrazi za hranom, očekivanje je da će čitavo jato slediti upravo onu pticu koja je pronašla izvor hrane. Međutim, i svaka ptica ponaosob može biti vođena sopstvenim instiktom i time na trenutak u potrazi za hranom napustiti jato. Tada se verovatno može desiti da, ukoliko pronađe bolji izvor hrane, čitavo jato upravo krene da sledi tu pticu. \\
 
