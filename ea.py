@@ -73,7 +73,7 @@ class EA:
 
 
     def stop_condition(self):
-        return self.current_iteration > self.max_iterations or self.fitness(self.top_chromosome) == self.num_clauses
+        return self.current_iteration > self.max_iterations or self.fitness(self.top_chromosome) == self.num_clauses-1
 
 
     def selectionTop10(self):
@@ -201,7 +201,7 @@ class EA:
         chromosome[i] = 1 - chromosome[i]
 
 
-    def lamarckian_mutation(self, chromosome):
+    def lamarckian_mutation(self, chromosome, adaptive = False):
         """
         Set of randomly chosen clauses is generated. If each clause in this set is
         satisfied by given chromosome, then do nothing. Otherwise pick a random variable of an
@@ -214,7 +214,9 @@ class EA:
 
         for clause in unsatisfied_clauses:
             chosen_var = abs(choice(clause))
-            chromosome[chosen_var-1] = 1 - chromosome[chosen_var-1]
+            #In adaptive version of function don't flip frozen genes
+            if not(adaptive and self.frozen[chosen_var-1]):
+                chromosome[chosen_var-1] = 1 - chromosome[chosen_var-1]
 
 
     def create_generation_1_Lambda(self):
@@ -304,7 +306,7 @@ class EA:
         var = abs(choice(chosen_unsat_clause))
 
         #In adaptive version of function don't flip frozen genes
-        if adaptive and self.frozen[var]:
+        if adaptive and self.frozen[var-1]:
             return
 
         chromosome[var-1] = 1 - chromosome[var-1]
@@ -356,6 +358,34 @@ class EA:
                 chromosome[i] = 1 - chromosome[i]
                 nbrflip += 1
                 fit_after = self.fitness(chromosome)
+
+                gain = fit_after - fit_before
+                if gain >= 0:
+                    #Accept flip
+                    improvement += gain
+                else:
+                    #There is no improvement
+                    #Undo flip
+                    chromosome[i] = 1 - chromosome[i]
+
+
+    def local_search_masap(self, chromosome, adaptive = False):
+        improvement = 1
+        nbrflip = 0
+
+        while(improvement > 0 and nbrflip < self.max_flip):
+
+            improvement = 0
+            for i in range(self.num_literals):
+                #In adaptive version of function don't flip frozen genes
+                if adaptive and self.frozen[i]:
+                    continue
+
+                fit_before = self.fitness_SAW(chromosome)
+                #Flip the i-th variable of the particle
+                chromosome[i] = 1 - chromosome[i]
+                nbrflip += 1
+                fit_after = self.fitness_SAW(chromosome)
 
                 gain = fit_after - fit_before
                 if gain >= 0:
@@ -484,6 +514,43 @@ class EA:
         return child
 
 
+    def update_table_masap(self, child):
+        parent = self.population[0]
+
+        #Unfreeze all genes
+        self.unfreeze()
+
+        parent_fitness = self.fitness_SAW(parent)
+        child_fitness = self.fitness_SAW(child)
+        if parent_fitness > child_fitness:
+            #Discard child
+            child = parent.copy()
+        elif child_fitness > parent_fitness:
+            #Empty table and add child to table
+            self.table.clear()
+            self.table.append(child)
+        else:   #child_fitness == parent_fitness
+            #Add child to table
+            self.table.append(child)
+            #If table is full
+            if len(self.table) == self.max_table_size:
+                self.frozen = [(0 if x == self.max_table_size or x == 0 else 1) for x in map(sum, zip(*self.table))]
+
+                #adapt mutation rate
+                n_frozen = sum(self.frozen)
+                self.mutation_rate = 0.5 * n_frozen / self.num_literals
+
+                #count equivalence classes
+                if self.num_of_equivalence_classes() <= 2:
+                    #RESTART - generate new random chromosome
+                    child = [randint(0,1) for x in range(self.num_literals)]
+                    self.unfreeze()
+
+                self.table.clear()
+
+        return child
+
+
     def create_generation_1_plus_1(self):
         """
         (1+1) - 1 parent reproducing 1 child. '+' denotes elitism strategy on both generations
@@ -504,9 +571,10 @@ class EA:
         """
         child = self.population[0].copy()
 
-        self.mutation_knowledge_based(child, adaptive = True)
-        self.local_search(child, adaptive = True)
-        child = self.update_table(child)
+        #self.mutation_knowledge_based(child, adaptive = True)
+        self.lamarckian_mutation(child, adaptive = True)
+        self.local_search_masap(child, adaptive = True)
+        child = self.update_table_masap(child)
 
         self.top_chromosome = child
         self.population = [self.top_chromosome]
@@ -654,12 +722,12 @@ def run_MASAP(path, max_iterations, max_flip, max_table_size):
         path,
         max_iterations,
         generation_size = 1,
-        mutation_rate = 0.5,
+        #mutation_rate = 0.9,
         max_flip = max_flip,
         max_table_size = max_table_size)
 
     #Apply flip heuristic to parent
-    ea.local_search(ea.population[0])
+    ea.local_search_masap(ea.population[0])
 
     while not ea.stop_condition():
         print('Iteration %d:' % ea.current_iteration)
@@ -670,6 +738,9 @@ def run_MASAP(path, max_iterations, max_flip, max_table_size):
         ea.create_generation_1_plus_1_modificated()
 
         ea.current_iteration += 1
+
+        if ea.current_iteration % 10 == 0:
+            ea.update_clauses_weight()
 
     return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
 
@@ -780,7 +851,7 @@ def main():
 
     if (args.algorithm == "masap"):
         print("MASAP".center(40, "-"))
-        solution, fitness, iteration = run_ASAP(
+        solution, fitness, iteration = run_MASAP(
             path                = args.path,
             max_iterations      = args.max_iterations,
             max_flip            = args.max_flip,

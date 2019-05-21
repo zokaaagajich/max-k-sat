@@ -210,7 +210,7 @@ class PSO:
 
 
     def stop_condition(self, num_satisfied_clauses, iteration):
-        return num_satisfied_clauses == self.num_clauses or iteration >= self.max_iteration
+        return num_satisfied_clauses == self.num_clauses-1 or iteration >= self.max_iteration
 
 
     def local_search(self, particle, fitness):

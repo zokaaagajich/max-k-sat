@@ -438,17 +438,20 @@ inicijalizacija koja se vrši na slučajan način.
 \begin{table}[h!]
 \centering
 \captionof{table}{Varijante EA algoritma}\label{tab:EA} 
-\begin{tabular}{ |p{2.8cm}|p{2.3cm}|p{2.3cm}|p{2.3cm}|p{2.3cm}|}
+\begin{tabular}{ |p{2cm}|p{2cm}|p{2cm}|p{2cm}|p{2cm}|p{2cm}|}
  \hline
- Svojstvo & SAWEA & RFEA & FlipGA & ASAP \\
+ Svojstvo & SAWEA & RFEA & FlipGA & ASAP & MASAP \\
  \hline
- politika zamene & $(1, \lambda^*)$ & stabilno stanje & generacijski & $(1 + 1)$ \\
- selekcija & - & turnirska & ruletska & - \\
- fitnes funkcija &	$f_{SAW}$ & $f_{REF}$ & $f_{MAXSAT}$ & $f_{MAXSAT}$ \\
- ukrštanje & - & - & uniformno & - \\
- mutacija & jednog bita & zasnovana na znanju & slučajna & slučajno-prilagodljiva \\
- lokalna pretraga & - & - & flip heuristika & flip heuristika \\
- adaptacija & fitnes & fitnes &  - & tabu lista \\
+ politika zamene & $(1, \lambda^*)$ & stabilno \break stanje & generacijski & $(1 + 1)$
+ & $(1 + 1)$ \\
+ selekcija & - & turnirska & ruletska & - & - \\
+ fitnes &	$f_{SAW}$ & $f_{REF}$ & $f_{MAXSAT}$ & $f_{MAXSAT}$ & $f_{SAW}$\\
+ ukrštanje & - & - & uniformno & - & - \\
+ mutacija & jednog bita & zasnovana na znanju & slučajna & slučajno-prilagodljiva 
+ & Lamarckian \\
+ lokalna \break pretraga & - & - & flip \break heuristika & flip \break heuristika &
+ flip \break heuristika \\
+ adaptacija & fitnes & fitnes &  - & tabu lista & tabu lista \\
  \hline
 \end{tabular}
 \end{table}
@@ -609,6 +612,24 @@ Pošto je $(1+1)$ u pitanju, nova generacija je ili roditelj ili dobijeno dete
 u zavisnosti od prilagođenosti izračunate sa $f_{MAXSAT}$.
 
 
+\subsubsection{MASAP}
+\label{sec:ea_masap}
+MASAP (eng.~{\em Modified ASAP}) uveli su autori ovog rada kao svoj originalni doprinos 
+i jedno dalje unapređenje ASAP algoritma. Kako se kasnije u rezultatima
+\ref{sec:ea_rezultati} videlo, ASAP se može kategorisati kao najbolji 
+algoritam iz kategorije EA i PSO algoritama koji su prezentovani u ovom radu, 
+pa je zato dalja modifikacija pokušana upravo na njemu. \\
+
+Modifikovani ASAP zadržava populaciju veličine jedan i korišćenje lokalne pretrage i tabu
+liste - elemente koji su se pokazali kao ključni u efikasnosti ovog algoritma.
+Ali, uvodi drugu fitnes funkciju i mutaciju. Umesto $f_{MAX}$ koristi težinsku funkicju
+$f_{SAW}$ koja se zbog ažuriranja težina u nekim slučajevima pokazala kao značajno
+unapređenje. Takođe, umesto obične slučajne mutacije, MASAP koristi Lamarckian SEA-SAW
+mutaciju, koja je jedno unapređenje mutacije zasnovane na znanju.
+Ovako modifikovani algoritam koristi najbolje elemente od svih prethodno izloženih 
+evolutivnih algoritama, pa je moguće očekivati poboljšanje u odnosu na ostale. Njegov
+rad biće prikazan u sledećem poglavlju.
+
 
 \subsection{Rezultati}
 \label{sec:ea_rezultati}
@@ -621,25 +642,27 @@ Prvo su pokrenute nezadovoljene instance gde su testovi takvi da je broj zadovol
 za jedan manji od ukupnog broja klauza. Pri ovim instancama u tabeli \ref{tab:ea_UNSAT}
 prikazani su rezultati izvršavanja programa. Vidi se da su SAWEA i RFEA retko dolazili
 do rešenja, pri čemu se RFEA, očekivano, pokazao kao nešto bolji, sa cenom sporijeg
-izvršavanja. Dalje su, FlipGA i ASAP u potpunosti ispunili očekivanja i rešili sve instance,
-pri čemu prednjači ASAP gledajući vremenski faktor, kako je bilo najavljeno u opisu ovog 
-algoritma \ref{sec:ea_asap}. ASAP koristi populaciju veličine jedan, u čemu leži njegovo
+izvršavanja. Dalje su, FlipGA, ASAP i MASAP u potpunosti ispunili očekivanja i rešili sve
+instance, pri čemu prednjače ASAP i MASAP gledajući vremenski faktor, 
+kako je bilo najavljeno u opisu ovih  algoritma \ref{sec:ea_asap}. 
+ASAP i MASAP koriste populaciju veličine jedan, u čemu leži njihovo
 ubrzanje i lokalnu pretragu u kombinaciji sa tabu listom za izbegavanje lokalnih optimuma.
-Zanimljivo je primetiti da se sa ova dva algoritma uglavnom u prvoj iteraciji dolazilo do 
-rešenja.
+Zanimljivo je primetiti da se sa ova tri algoritma uglavnom u prvoj iteraciji dolazilo do 
+rešenja. U proseku, iteracije MASAP-a su vremenski kraće, a dolazilo se do rešenja u 
+kraćem broju iteracija.
 
 \begin{table}[h!]
 \centering
 \captionof{table}{AIM nezadovoljivi testovi}\label{tab:ea_UNSAT}
-\begin{tabular}{ |p{2.5cm}|p{1.4cm}|p{1.4cm}||p{1.6cm}|p{1.6cm}|p{1.6cm}|p{1.6cm}|} 
+\begin{tabular}{ |p{2.4cm}|p{1cm}|p{1cm}||p{1.2cm}|p{1.2cm}|p{1.2cm}|p{1.2cm}|p{1.2cm}|}
  \hline
- Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & ASAP \\ 
+Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & ASAP & MASAP \\ 
  \hline
- aim-50-1\_6-no & 50 & 80 & 79 & 79 & \textbf{79} & \textbf{79} \\
- aim-50-2\_0-no & 50 & 100 & 98.6 &  99 & \textbf{99} & \textbf{99} \\
- aim-100-1\_6-no & 100 & 160 & 158.8 & 159 & \textbf{159} & \textbf{159} \\
- aim-100-2\_0-no & 100 & 200 & 197.8 & 199 & \textbf{199} & \textbf{199} \\
- aim-200-2\_0-no & 200 & 400 & 396 & 397.8 & \textbf{399} & 399 \\ 
+ aim-50-1\_6-no & 50 & 80 & 79 & 79 & \textbf{79} & \textbf{79} & \textbf{79} \\
+ aim-50-2\_0-no & 50 & 100 & 98.6 &  99 & \textbf{99} & \textbf{99} & \textbf{99}\\
+ aim-100-1\_6-no & 100 & 160 & 158.8 & 159 & \textbf{159} & \textbf{159} & \textbf{159} \\
+ aim-100-2\_0-no & 100 & 200 & 197.8 & 199 & \textbf{199} & \textbf{199} & \textbf{199} \\
+ aim-200-2\_0-no & 200 & 400 & 396 & 397.8 & \textbf{399} & 399 & \textbf{399} \\ 
  \hline
 \end{tabular}
 \end{table}
@@ -676,27 +699,30 @@ Iz rezultata vidi se slična situacija kao i u prethodnoj grupi, samo ovoga puta
 SAWEA i RFEA daleko odstupaju od preostala dva unapređenja lokalnom pretragom.
 RFEA se po rezultatima čini nešto bolji, ali kada je vreme izvršavanja u pitanju, to
 apsolutno nije opravdano. Slično je i pri poređenju FlipGA i ASAP gde su oba postigli
-iste rezultate u svim instancama, pri čemu je ASAP neuporedivo brži.\\
+iste rezultate u svim instancama, pri čemu je ASAP neuporedivo brži. 
+Jedini algoritam koji je rešio čak dve instance više od ostalih je MASAP, 
+sa prosečnim vremenom izvršavanja čak kraćim nego ASAP, pa se stoga, 
+značajno izdvaja u odnosu na ostale. \\
 
 \begin{table}[h!]
 \centering
 \captionof{table}{AIM zadovoljivi testovi}\label{tab:ea_SAT} 
-\begin{tabular}{ |p{2.5cm}|p{1.4cm}|p{1.4cm}||p{1.6cm}|p{1.6cm}|p{1.6cm}|p{1.6cm}|}
+\begin{tabular}{ |p{2.4cm}|p{1cm}|p{1cm}||p{1.2cm}|p{1.2cm}|p{1.2cm}|p{1.2cm}|p{1.2cm}|}
 \hline
- Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & ASAP \\ 
+Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & ASAP & MASAP\\ 
  \hline
- aim-50-1\_6-yes & 50 & 80 & 79 & 79 & 79 &  79 \\ 
- aim-50-2\_0-yes &  & 100 &  98.4 &  99 & 99 & 99 \\ 
- aim-50-3\_4-yes &  & 170 & 167 & 167.2 & 170 & 170  \\ 
- aim-50-6\_0-yes &  & 300 &  300 & 290 &  300 &  300 \\ 
+ aim-50-1\_6-yes & 50 & 80 & 79 & 79 & 79 &  79 & 80 \\ 
+ aim-50-2\_0-yes &  & 100 &  98.4 &  99 & 99 & 99 & 100 \\ 
+ aim-50-3\_4-yes &  & 170 & 167 & 167.2 & 170 & 170 & 170  \\ 
+ aim-50-6\_0-yes &  & 300 &  300 & 290 &  300 &  300 & 300 \\ 
  \hline
- aim-100-1\_6-yes & 100 & 160 & 158.2 & 158 &  159 & 159 \\ 
- aim-100-2\_0-yes &  & 200 & 195.8 &  197.8 & 199 &  199 \\ 
- aim-100-3\_4-yes &  & 340 & 324.6  & 332.4 & 340 & 340 \\ 
- aim-100-6\_0-yes &  & 600 &  586.8 & 576 & \textbf{600} & 600 \\ 
+ aim-100-1\_6-yes & 100 & 160 & 158.2 & 158 &  159 & 159 & 159 \\ 
+ aim-100-2\_0-yes &  & 200 & 195.8 &  197.8 & 199 &  199 & 199 \\ 
+ aim-100-3\_4-yes &  & 340 & 324.6  & 332.4 & 340 & 340 & 340 \\ 
+ aim-100-6\_0-yes &  & 600 &  586.8 & 576 & \textbf{600} & 600 & \textbf{600}\\ 
  \hline
- aim-200-2\_0-yes & 200 & 400 &  392.2 & 396 & 399 & 399 \\ 
- aim-200-6\_0-yes &  & 1200 & 1133 & 1173 &  1200 & 1200 \\ 
+ aim-200-2\_0-yes & 200 & 400 &  392.2 & 396 & 399 & 399 & 399 \\ 
+ aim-200-6\_0-yes &  & 1200 & 1133 & 1173 &  1200 & 1200 & 1200 \\ 
  \hline
 \end{tabular} 
 \end{table}
