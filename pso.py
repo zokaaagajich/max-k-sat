@@ -70,7 +70,7 @@ class PSO:
         with open(filename, "r") as fin:
             #remove comments from beginning
             line = fin.readline()
-            while(line.lstrip()[0] == 'c'):
+            while line.lstrip()[0] == 'c':
                 line = fin.readline()
 
             header = line.split(" ")
@@ -209,21 +209,15 @@ class PSO:
         return num_true_clauses
 
 
-    def stop_condition(self, iteration):
-        #self.num_satisfied_clauses(self.global_best) == self.num_literals
-        if iteration > self.max_iteration:
-            return True
-        return False
+    def stop_condition(self, num_satisfied_clauses, iteration):
+        return num_satisfied_clauses == self.num_clauses or iteration >= self.max_iteration
 
 
     def local_search(self, particle, fitness):
         improvement = 1
         nbrflip = 0
 
-        while(  improvement > 0
-                and nbrflip < self.max_flip
-                and particle.position not in self.tabuList):
-
+        while  improvement > 0 and nbrflip < self.max_flip:
             improvement = 0
             for i in range(self.num_literals):
                 fit_before = fitness(particle.position)
@@ -241,12 +235,6 @@ class PSO:
                     #Undo flip
                     particle.position[i] = 1 - particle.position[i]
 
-            if improvement == 0:
-                #If no improvement add this solution to tabu list
-                self.tabuList.append(particle.position)
-                if len(self.tabuList) > self.maxTabuSize:
-                    del self.tabuList[0]
-
 
     def local_search_random_k(self, particle, fitness, k):
         """
@@ -256,10 +244,7 @@ class PSO:
         improvement = 1
         nbrflip = 0
 
-        while(  improvement > 0
-                and nbrflip < self.max_flip
-                and particle.position not in self.tabuList):
-
+        while  improvement > 0 and nbrflip < self.max_flip and particle.position not in self.tabuList:
             improvement = 0
             for i in sample(range(self.num_literals), int(self.num_literals*k)):
                 fit_before = fitness(particle.position)
@@ -292,8 +277,7 @@ def run_PSO_LS(path, num_particles, max_iteration, max_flip, w, c1, c2):
     iteration = 0
     num_satisfied_clauses = 0
 
-    #NOTE First condition - only if formula is satisfiable
-    while(not (num_satisfied_clauses == pso.num_clauses or iteration >= pso.max_iteration)):
+    while not pso.stop_condition(num_satisfied_clauses, iteration):
         iteration += 1
 
         #Calculate fitness
@@ -316,7 +300,8 @@ def run_PSO_LS(path, num_particles, max_iteration, max_flip, w, c1, c2):
             #Topology ring size 1
             #pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
 
-        pso.update_clauses_weight()
+        if iteration % 10 == 0:
+            pso.update_clauses_weight()
 
         print("Iteration: ", iteration)
         num_satisfied_clauses = pso.num_satisfied_clauses(pso.global_best)
@@ -331,12 +316,10 @@ def run_PSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1,
     """
     PSO with the standard objective function - number of satisfied clauses
     """
-    #TODO
     pso = PSO(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1, c2)
     iteration = 0
 
-    #NOTE First condition - only if formula is satisfiable
-    while(not (pso.global_best_fitness == pso.num_clauses or iteration >= pso.max_iteration)):
+    while not pso.stop_condition(pso.global_best_fitness, iteration):
         iteration += 1
 
         #Calculate fitness
@@ -368,8 +351,7 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1
     iteration = 0
     num_satisfied_clauses = 0
 
-    #NOTE First condition - only if formula is satisfiable
-    while(not (num_satisfied_clauses == pso.num_clauses or iteration >= pso.max_iteration)):
+    while not pso.stop_condition(num_satisfied_clauses, iteration):
         iteration += 1
 
         #Calculate fitness
@@ -389,7 +371,8 @@ def run_WPSOSAT(path, num_particles, max_iteration, max_flip, maxTabuSize, w, c1
             #Topology ring size 1
             #pso.update_global_best_ring(particle, pso.swarm[i % (pso.num_particles+1)])
 
-        pso.update_clauses_weight()
+        if iteration % 10 == 0:
+            pso.update_clauses_weight()
 
         print("Iteration: ", iteration)
         num_satisfied_clauses = pso.num_satisfied_clauses(pso.global_best)
@@ -416,7 +399,7 @@ def main():
     args = parser.parse_args()
 
 
-    if (args.algorithm == "psols"):
+    if args.algorithm == "psols":
         solution, satisfied_clauses, iteration = run_PSO_LS(path = args.path,
                 num_particles = args.particles,
                 max_iteration = args.maxIter,
@@ -425,7 +408,7 @@ def main():
                 c1 = args.individual,
                 c2 = args.social)
 
-    if (args.algorithm == "psosat"):
+    if args.algorithm == "psosat":
         solution, satisfied_clauses, iteration = run_PSOSAT(path = args.path,
                 num_particles = args.particles,
                 max_iteration = args.maxIter,
@@ -435,7 +418,7 @@ def main():
                 c1 = args.individual,
                 c2 = args.social)
 
-    if (args.algorithm == "wpsosat"):
+    if args.algorithm == "wpsosat":
         solution, satisfied_clauses, iteration = run_WPSOSAT(path = args.path,
                 num_particles = args.particles,
                 max_iteration = args.maxIter,

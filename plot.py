@@ -8,22 +8,33 @@ import os
 #Parsing arguments of command line
 parser = argparse.ArgumentParser()
 parser.add_argument('path', help = "path to input .cnf file")
-parser.add_argument('-p', '--program', help = "program [ea.py, pso.py]", required = True)
+parser.add_argument('-s','--program', nargs='+', help='list of programs to start: ea, pso', required=True)
 parser.add_argument('-i', '--max_iterations',
                     nargs = '?', default = 1000, type = int,
                     help = "Maximal number of iterations. Default 1000")
-parser.add_argument('-a','--list', nargs='+', help='Required algorithm to run [asap, rfea, flipga, sawea | psols, psosat, wpsosat]', required=True)
+parser.add_argument('-e','--listEA',  nargs='+', help='Algorithms to run for EA: [asap, rfea, flipga, sawea', required=False)
+parser.add_argument('-p','--listPSO', nargs='+', help='Algorithm to run for PSO: [psols, psosat, wpsosat]', required=False)
 args = parser.parse_args()
 
 #run algorithms
 num = 0
 files = []
-for algorithm in args.list:
-    print(algorithm, '...')
-    files.append((algorithm, "{1}.txt".format(algorithm,num)))
-    os.system('time python3 {0} {1} {2} -i {3} > {4}.txt'.format(args.program, args.path, algorithm, args.max_iterations, num))
-    num = num + 1
-    print('done!')
+for program in args.program:
+    if program[0] == 'e':
+        for algorithm in args.listEA:
+            print(algorithm, '...')
+            files.append((algorithm, "{1}.txt".format(algorithm,num)))
+            os.system('time python3 {0}.py {1} {2} -i {3} > {4}.txt'.format(program, args.path, algorithm, args.max_iterations, num))
+            num = num + 1
+            print('done!')
+
+    if program[0] == 'p':
+        for algorithm in args.listPSO:
+            print(algorithm, '...')
+            files.append((algorithm, "{1}.txt".format(algorithm,num)))
+            os.system('time python3 {0}.py {1} {2} -i {3} > {4}.txt'.format(program, args.path, algorithm, args.max_iterations, num))
+            num = num + 1
+            print('done!')
 
 
 color = iter(['-r','-g','-b','-y', '-k'])
