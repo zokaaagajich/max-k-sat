@@ -45,8 +45,9 @@
 \abstract{
 U ovom radu biće objedinjene, implementirane i upoređene dve grupe algoritama za rešavanje
 optimizacionog problema maksimalne k-zadovoljivosti zasnovane na populacijama - 
-evolucioni algoritmi razvijeni u nekoliko različitih varijanti SAWEA, RFEA, FlipGA
-i ASAP, MASAP i rojevi čestica PSO sa verzijama PSO-LS, PSOSAT i WPSOSAT. Biće iznete njihove
+evolucioni algoritmi razvijeni u nekoliko različitih varijanti SAWEA, RFEA, FlipGA, ASAP 
+i jedan novi algoritam MASAP, kao i grupa rojevih čestica PSO 
+sa verzijama PSO-LS, PSOSAT i WPSOSAT. Biće iznete njihove
 osobine, prednosti, mane i unapređenja, da bi se na kraju, na konkretnim rezultatima 
 implementiranih algoritama pokazale njihove razlike i mogućnosti.}
 
@@ -86,10 +87,13 @@ biće dat njegov pseudokod i objašnjenja svake od akcija koje se preduzimaju.
 Potom će biti iznete nekoliko verzija  algoritma
 \footnote{Sve implementacije dostupne su na GitHub nalogu autora: \\
 \url{https://github.com/zokaaagajich/max-k-sat}} 
-i njihova unapređenja u delu \ref{sec:ea_varijante} i prikazane njihove mogućnosti
-u rezultatima \ref{sec:ea_rezultati}. U drugom delu biće predstavljena optimizacija
-rojem čestica (PSO) \ref{sec:pso} u njegovoj diskretnoj formi sa nekoliko različitih verzija
-\ref{sec:pso_varijante} koji će biti upoređeni u rezultatima \ref{sec:pso_rezultati}.
+i njihova unapređenja u delu \ref{sec:ea_varijante}, kao i jedan originalni doprinos.
+Mogućnosti EA biće dati tabelarno i grafički u
+rezultatima \ref{sec:ea_rezultati}. U drugom delu biće predstavljena optimizacija
+rojem čestica (PSO) \ref{sec:pso} u njegovoj diskretnoj formi sa 
+nekoliko različitih verzija \ref{sec:pso_varijante} koji će biti upoređeni 
+u rezultatima \ref{sec:pso_rezultati}. U poslednjem poglavlju \ref{EAvsPSO} 
+će se uporediti EA nasuprot PSO i doneti krajnji zaključci.
 
 
 \section{Evolucioni algoritmi (EA)}
@@ -675,10 +679,10 @@ Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & A
 
 Za pokrenutu jednu nezadovoljivu instancu na slici \ref{img:ea_no1} 
 jasno se vidi razlika između ovih algoritama i njihov put ka pronalaženju rešenja.
-Najduži put imao je SAWEA u 40 iteracija, no vremenski on je među boljima sa 0,07s.
-Najefikasniji je ASAP koji je za jednu iteraciju i 0,06s došao do rešenja.
-FlipGA je nešto sporiji sa 0,17s što je cena pozivanja lokalne pretrage nad većom
-populacijom. Dok je RFEA sa 1,34s vremenski najgori.\\
+Najduži put imao je RFEA (1,48s) u 35 iteracija, potom SAWEA (0,08s) koji je vremenski 
+najbrži. Najefikasniji su MASAP (0,07s) i ASAP (0,08s) koji su za jednu iteraciju 
+došli do rešenja. FlipGA (0,19s) je nešto sporiji što je cena pozivanja lokalne pretrage 
+nad većom populacijom.\\
 
 \begin{figure}[h!]
 \centering
@@ -687,9 +691,10 @@ populacijom. Dok je RFEA sa 1,34s vremenski najgori.\\
 \end{figure}
 
 Na slici \ref{img:ea_no2} prikazano je rešavanje nešto teže nezadovoljive instance.
-I dalje su za čitavu klasu razlike FlipGA (6,19s) i ASAP (0,59s) pri čemu se još jasnije 
-vidi značaj ASAP unapređenja. RFEA (649,24s) pokazao se još gori za teže instance. 
-On, istina, monotono raste pri uspehu u pretrazi, za razliku od SAWEA (1,84s) koji više 
+I dalje su za čitavu klasu razlike FlipGA (5,50s), ASAP (0,50s) i MASAP (0,70s)
+pri čemu se još jasnije vidi značaj osnovnog ASAP unapređenja. RFEA (463,38s) 
+pokazao se još gori za teže instance. 
+On, istina, monotono raste pri uspehu u pretrazi, za razliku od SAWEA (0,93s) koji više 
 nasumično luta, ali kada se pogleda vreme izvršavanja, to definitivno nije vredno.
 Takođe, SAWEA u svom lutanju uspeva da dođe do rešenja, za razliku od RFEA
 koji je očigledno dostigao svoj lokalni optimum.\\
@@ -711,7 +716,7 @@ značajno izdvaja u odnosu na ostale. \\
 \hline
 Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & ASAP & MASAP\\ 
  \hline
- aim-50-1\_6-yes & 50 & 80 & 79 & 79 & 79 &  79 & 80 \\ 
+ aim-50-1\_6-yes & 50 & 80 & 79 & 79 & 79 &  79 & 79.5 \\ 
  aim-50-2\_0-yes &  & 100 &  98.4 &  99 & 99 & 99 & 100 \\ 
  aim-50-3\_4-yes &  & 170 & 167 & 167.2 & 170 & 170 & 170  \\ 
  aim-50-6\_0-yes &  & 300 &  300 & 290 &  300 &  300 & 300 \\ 
@@ -730,9 +735,16 @@ Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & A
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\textwidth]{ea-aim-50-6_0-yes}
-\caption{EA aim-50-6\_0-yes}\label{img:ea_yes1}
+\includegraphics[width=\textwidth]{ea-aim-100-3_4-yes}
+\caption{EA aim-100-3\_4-yes}\label{img:ea_yes1}
 \end{figure}
+
+Jedna instanca zadovoljivih problema prikazana je na slici \ref{img:ea_yes1}.
+U skladu sa uočenom monotonošću RFEA (93,06s) koja se dobija zahvaljujući komplikovanijem
+izračunavanju funkcije prilagođenosti $f_{REF}$ uspela je da ga istakne pre 
+SAWEA (0,80s), ali po brzini
+izvršavanja i dalje ostaje najgore rangiran. Problem rešavaju FlipGA (140,47s) 
+prvi dolazi do rešenja, ali vremenski su bolji i dalje ASAP (27,42s) i MASAP (21,54s). \\
 
 \begin{figure}[h!]
 \centering
@@ -740,22 +752,17 @@ Instanca & Broj \break literala & Broj \break klauza & SAWEA & RFEA & FlipGA & A
 \caption{EA f600 za 20 iteracija}\label{img:ea_f600}
 \end{figure}
 
-Jedna instanca zadovoljivih problema prikazana je na slici \ref{img:ea_yes1}.
-U skladu sa uočenom monotonošću RFEA (12,27s) koja se dobija zahvaljujući komplikovanijem
-izračunavanju funkcije prilagođenosti $f_{REF}$ uspela je da ga istakne pre 
-SAWEA (0,86s) po broju iteracija. Ali po brzini
-izvršavanja i dalje ostaje najgore rangiran. ASAP (0,11s) i FlipGA (0,61s) 
-došli su do rešenja u prvoj iteraciji. \\
-
-Zaključujemo da su SAWEA i ASAP iako različiti po efikasnosti, najbrži algoritmi, 
+Zaključujemo da su SAWEA sa jedne strane, a sa druge ASAP i MASAP iako različiti 
+po efikasnosti, najbrži algoritmi, 
 pa ih za razliku od ostalih možemo pokrenuti i na nekim još težim instancama, kao što 
 je formula f600 3-SAT koja se sastoji od 600 promenljivih i 2550 klauza. U pitanju je 
 zadovoljiva formula, pa je očekivano rešenje baš 2550. Na slici \ref{img:ea_f600}
-jasno se vidi velika razlika u efikasnosti ASAP (275,53s) i SAWEA (0,43s).
-ASAP je u samo 20 iteracija skoro došao do tačnog rešenja, dok je SAWEA dosta dalji,
+jasno se vidi velika razlika u efikasnosti između SAWEA (0,43s) i 
+ASAP (230,40s)/MASAP (115,30s).
+ASAP i MASAP su u samo 20 iteracija skoro došli do tačnog rešenja, dok je SAWEA dosta dalji,
 polako konvergirao. Naravno, ovakva drastična razlika plaćena je vremenom izvršavanja,
-pa je SAWEA znatno brži.
-
+pa je SAWEA znatno brži. Na težoj instanci se ovoga puta videla i vrmeneska prednost kao i
+veća tačnost MASAP-a u odnosu na njegovu nemodifikovanu verziju.
 
 
 \newpage
@@ -959,17 +966,17 @@ za poslednji test vidi se slabost ne korišćenja lokalne pretrage.\\
 \end{tabular}
 \end{table}
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{pso-aim-200-2_0-no}
-\caption{PSO aim-200-2\_0-no}\label{img:pso-200-2-no}
-\end{figure}
-
 Na slici \ref{img:pso-200-2-no} vidi se rešavanje jedne instance nezadovoljive formule.
 PSO-LS (6,60s), koji se zasniva na ažuriranju brzina i pozicija, dostiže globalni optimum
 uz nešto lokalnog lutanja što je posledica kretanja u hiperprostoru rešenja.
 S vrlo malom vremenskom razlikom, samo zahvaljujući korišćenju lokalne pretrage, 
 PSOSAT (6,73s) dolazi do rešenja u jednoj iteraciji, kao i WPSOSAT (8,20s). \\
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{pso-aim-200-2_0-no}
+\caption{PSO aim-200-2\_0-no}\label{img:pso-200-2-no}
+\end{figure}
 
 Potom su pokrenuti zadovoljivi testovi i njivoh rezultat beležen je u tabelu
 \ref{tab:SAT}. Sada PSO-LS nije mogao da se uporedi sa ostala dva algoritma. 
@@ -1007,22 +1014,26 @@ SAW funkcije, i naravno, lokalne pretrage.
 
 Na slici \ref{img:pso-200-6-0-yes} vidi se da sa složenošću instance koja se rešava,
 običan PSO-LS (44,44s) koji nije uspeo da dođe do rešenja,
-ne može da se poredi sa PSOSAT (34,60s) i (40,80s) koji su 
-opet došli do rešenja u prvoj iteraciji. Gledajući zbirno, vremena izvršavanja ne razlikuju
-se toliko drastično od EA algoritama. \\
+ne može da se poredi sa PSOSAT (34,60s) i WPSOSAT (40,80s) koji su 
+opet došli do rešenja u prvoj iteraciji. Gledajući zbirno ove tri vezije, 
+vremena izvršavanja ne razlikuju se toliko drastično, kako je bio slučaj kod EA, 
+gde je jedan jednostavniji algoritam bio znatno brži od ostalih. \\
 
-Sledeća instanca prikazana na slici \ref{img:pso-100-3-4-yes} ograničena je 500 iteracija,
+Sledeća instanca prikazana na slici \ref{img:pso-100-3-4-yes} ograničena je na 500 iteracija,
 kako posle nije bilo značajnog napretka. PSO-LS (6,18s) ponaša se očekivano s prethodnim
 zaključcima, ali se sada vidi razlika između preostala dva algoritma. 
 PSOSAT (303,84s) zbog loše fitnes funckije i usled nedostatka ažuriranja težina,
 iako blizu rešenja upada u jedan loklani optimum iz koga ne može da se izvuče. 
 Za razliku od njega WPSOSAT (51,65s) u svega nekoliko iteracija jedini dolazi do rešenja.
+U sledećem poglavlju biće prikaz odnos u efikasnosti prethodno dve izložene grupe algoritama
+EA i PSO, po odgovarajućim kategorijama.\\
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\textwidth]{pso-aim-100-3_4-yes.png}
 \caption{PSO aim-100-3\_4-yes}\label{img:pso-100-3-4-yes}
 \end{figure}
+
 
 \section{EA nasuprot PSO}
 \label{EAvsPSO}
@@ -1031,11 +1042,60 @@ koje su rezultati bili prikazani tabelarno i grafički u \ref{sec:ea_rezultati},
 optimizacioni algoritmi rojem čestica, u delu \ref{sec:pso} sa pratećim rezultatima u 
 \ref{sec:pso_rezultati}. Kada su obrađeni zasebno i rangirani pojedinačni
 algoritmi iz svake grupe, sada se mogu objediniti slični iz EA i iz PSO i međusobno 
-uporediti.\\
+uporediti.
 
-Prvo se mogu uporediti algoritmi koji su se pokazali kao vremenski brzi sa sporom
-konvergencijom: SAWEA i PSO-LS.
-%TODO slike i drugo poredjenje
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{ea-pso-aim-200-2_0-no.png}
+\caption{Laki EA vs PSO aim-200-2\_0-no}\label{img:EAvsPSO-200-2_0-no}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{ea-pso-aim-200-6_0-yes.png}
+\caption{Laki EA vs PSO aim-200-6\_0-yes}\label{img:EAvsPSO-200-6_0-yes}
+\end{figure}
+
+Prvo se mogu uporediti algoritmi ,,lake kategorije'' koji su se pokazali kao 
+vremenski brzi sa sporom konvergencijom: SAWEA i PSO-LS. Za jednu nezadovoljivu formulu
+\ref{img:EAvsPSO-200-2_0-no}, kao i za zadovoljivu \ref{img:EAvsPSO-200-6_0-yes} vidi se 
+slično ponašanje. SAWEA (0,60 i 9,06s) pokazao se kao brži algoritam koji pritom 
+u manje iteracija dolazi do rešenja za razliku od PSO-LS (6,89 i 46,97s). \\
+
+Može se zaključiti da su oba algoritma dosta slična, ali se, na ovim testovima, predstavnik
+evolutnivnih algoritama SAWEA pokazao kao brži, gledajući i vremenski, 
+i po broju iteracija, u odnosu na prestavnika optimizacije rojem čestica PSO-LS.\\
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{ea-pso-aim-100-2_0-yes.png}
+\caption{Teži EA vs PSO aim-100-2\_0-yes}\label{img:EAvsPSO-100-2_0-yes}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{ea-pso-aim-100-3_4-yes.png}
+\caption{Teži EA vs PSO aim-100-3\_4-yes}\label{img:EAvsPSO-100-3_4-yes}
+\end{figure}
+
+Dalje su poređeni najbolji algoritmi iz kategorije efikasnih po tačnosti rešenja,
+ali nešto sporijih zbog komplikovanije implikacije - ASAP i MASAP protiv WPSOSAT.
+Na slici \ref{img:EAvsPSO-200-6_0-yes} vidi se da i u ovoj kategoriji evolucioni algoritmi 
+prednjače u odnosu na optimizacije rojem čestica,
+pa je i ovde najbolji MASAP (4,50s) u odnosu na svog prethodnika ASAP (11,38s) i
+WPSOSAT (71,36s). Kako ni jedan od njih nije došao do tačnog rešenja ograničeno je na 
+150 iteracija, pa su data vremena realan prikaz trajanja jedne iteracije. \\
+
+Za instancu aim-200-2\_0-no skoro svi algoritmi dolazili su do rešenja u prvom iteraciji.
+Po vremenu izvršavanja MASAP (0,75s) i ASAP (0,92s) su se opet pokazali kao brži
+u odnosu na WPSOSAT (8,27s).\\
+
+Još jedan primer ove kategorije prikazan je na slici \ref{img:EAvsPSO-100-3_4-yes}
+gde su opet svi algoritmi došli do rešenja, i gde se MASAP (2,48s) rangirao kao najbolji,
+za kojim je ASAP (7,13s) i WPSOSAT (8,50) koji je u najmanje iteracija došao do rešenja.
+Već je utvrđeno da njegove pojedinačne iteracije traju duže u odnosu na preostala dva
+algoritma.
+
 
 
 \section{Zaključak}
@@ -1044,19 +1104,23 @@ U ovom radu objedinjeni su i poređeni razni neegzaktni algoritmi za rešavanje
 optimizacionog problema maksimalne k-zadovoljivosti, 
 a koji su tesno povezani sa evolucionim algoritmima. Ispričan je nastanak 
 evolucionih algoritama, njihove osnovne karakteristike i nekoliko unapređenja. 
-Dat je osvrt i na optimizaciju rojem čestica, koji je po prirodi blizak sa EA,
+Dat je osvrt i na algoritam optimizacije rojem čestica, koji je po prirodi blizak sa EA,
 ali suštinski nije podoban za rešavanje diskretnih problema kakav je max k-SAT, 
 što se videlo i u rezultatima. U zavisnosti od potrebe, razni algoritmi su se pokazali
-kao podobno rešenje. Ako je potrebno brzo odrediti broj zadovoljenih klauza,
+kao podobno rešenje, pa su s toga podeljene u dve kategorije.
+Ako je potrebno brzo odrediti broj zadovoljenih klauza,
 pri čemu nije od velikog značaja tačno rešenje, već je dovoljno i približno,
-a posebno ako su veliki problemi u pitanju, koristiće se SAWEA ili PSO-LS.
-Ako je pak važna brža konvergencija, najbolje se pokazao ASAP koji je nadmašio 
-FlipGA, kao i sve varijante PSO algoritama.
+a posebno ako su veliki problemi u pitanju, zbog brzine koristiće se SAWEA ili PSO-LS.
+Ako je pak važna brža konvergencija, najbolje se pokazao MASAP, novi algoritam 
+predstavljen u ovom radu, a potom i njemu blizak ASAP. 
+Oni su zahvaljujući svojim unapređenjima nadmašili FlipGA, 
+kao i sve varijante PSO algoritama.
 
 
 
 \addcontentsline{toc}{section}{Literatura}
 \appendix
+\newpage
 \bibliography{max-k-sat} 
 \bibliographystyle{plain}
 
