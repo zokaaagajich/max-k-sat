@@ -296,12 +296,17 @@ class EA:
         return unsatisfied
 
 
-    def mutation_knowledge_based(self, chromosome):
+    def mutation_knowledge_based(self, chromosome, adaptive = False):
         """
         Selects an unsatisfied clause and flips exactly one randomly chosen variable contained in the clause
         """
         chosen_unsat_clause = choice(self.get_unsatisfied_clauses(chromosome, self.clauses))
         var = abs(choice(chosen_unsat_clause))
+
+        #In adaptive version of function don't flip frozen genes
+        if adaptive and self.frozen[var]:
+            return
+
         chromosome[var-1] = 1 - chromosome[var-1]
 
 
@@ -493,6 +498,19 @@ class EA:
         self.population = [self.top_chromosome]
 
 
+    def create_generation_1_plus_1_modificated(self):
+        """
+        (1+1) - 1 parent reproducing 1 child. '+' denotes elitism strategy on both generations
+        """
+        child = self.population[0].copy()
+
+        self.mutation_knowledge_based(child, adaptive = True)
+        self.local_search(child, adaptive = True)
+        child = self.update_table(child)
+
+        self.top_chromosome = child
+        self.population = [self.top_chromosome]
+
 
 def run(path):
     ea = EA(path)
@@ -629,6 +647,34 @@ def run_ASAP(path, max_iterations, max_flip, max_table_size):
     return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
 
 
+
+def run_MASAP(path, max_iterations, max_flip, max_table_size):
+
+    ea = EA(
+        path,
+        max_iterations,
+        generation_size = 1,
+        mutation_rate = 0.5,
+        max_flip = max_flip,
+        max_table_size = max_table_size)
+
+    #Apply flip heuristic to parent
+    ea.local_search(ea.population[0])
+
+    while not ea.stop_condition():
+        print('Iteration %d:' % ea.current_iteration)
+
+        print('Current solution fitness:\n%d' % ea.fitness(ea.top_chromosome))
+
+        #Using genetic operators crossover and mutation create new chromosomes
+        ea.create_generation_1_plus_1_modificated()
+
+        ea.current_iteration += 1
+
+    return (ea.top_chromosome, ea.fitness(ea.top_chromosome), ea.current_iteration)
+
+
+
 def w_clauses_from_file(filename):
     """
     Returns array of clauses with weights = 1
@@ -661,7 +707,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('path', help = "path to input .cnf file")
     parser.add_argument('algorithm',
-                        choices=['sawea','rfea','flipga', 'asap'],
+                        choices=['sawea','rfea','flipga', 'asap', 'masap'],
                         help = "Choose an algorithm to run")
     parser.add_argument('-i', '--max_iterations',
                         nargs = '?', default = 1000, type = int,
@@ -725,6 +771,15 @@ def main():
 
     if (args.algorithm == "asap"):
         print("ASAP".center(40, "-"))
+        solution, fitness, iteration = run_ASAP(
+            path                = args.path,
+            max_iterations      = args.max_iterations,
+            max_flip            = args.max_flip,
+            max_table_size      = args.max_table_size
+        )
+
+    if (args.algorithm == "masap"):
+        print("MASAP".center(40, "-"))
         solution, fitness, iteration = run_ASAP(
             path                = args.path,
             max_iterations      = args.max_iterations,
