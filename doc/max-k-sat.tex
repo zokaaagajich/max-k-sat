@@ -226,7 +226,7 @@ Definišemo je koristeci $f_{MAXSAT}$ za hromozom $x$ na sledeći način:
 	$ f_{REF} (x) = f_{MAXSAT} (x) + \alpha r(x) $
 \end{center}
 gde je $\alpha > 0 $ predstavlja nivo uticanja funkcije $r$, 
-$ r : \lbrace 0, 1 \rbrace ^ n \rightarrow [0, 1 \rbrace $. 
+$ r : \lbrace 0, 1 \rbrace ^ n \rightarrow [0, 1] $. 
 Za $\alpha = 0 $ $f_{REF} $ se ponaša kao $f_{MAXSAT} $. \\
 
 Funkcija $r$ za hromozom $x$ se definiše na sledeći način:
@@ -269,7 +269,7 @@ Ovako definisana ruletska selekcija imaće primenu u FlipGA algoritmu.
 U turnirskoj selekciji \cite{vi_Janicic} jedinke odigravaju turnire u kojima veće šansu za
 pobedu imaju one sa boljom prilagođenošću. Za jedan turnir bira se slučajno $k$ jedinki iz
 populacije. Pobednikom se smatra jedinka sa najvećom prilagođenošću. 
-Turnirska selekcija primnjuje se u RFEA.
+Turnirska selekcija primenjuje se u RFEA.
 
 \subsection{Ukrštanje}
  \label{sec:ea_ukrstanje}
@@ -326,7 +326,7 @@ Ova mutacija koristiće se u SAWEA verziji \ref{sec:ea_sawea}.
 \label{sec:ea_slucajno_prilagodljiva_mutacija}
 Slučajno-prilagodljiva mutacija (eng.~{\em random-adaptive mutation}) \cite{adaptiveEA} 
 je u svojoj srži zapravo slučajna mutacija sa jednom izmenom:
-Neki geni hromozoma mogu biti ,,zamrznuti'' radi očuvanja dobrog rešenja do kog se došlo,
+neki geni hromozoma mogu biti ,,zamrznuti'' radi očuvanja dobrog rešenja do kog se došlo,
 dok se ostali, za koje se utvrdilo da ne vode do rešenja, mogu menjati.\\
 
 Ova ideja uvodi se u ASAP algoritmu \ref{sec:ea_asap} gde će biti detaljnije obrađena.
@@ -370,10 +370,10 @@ stabilnog stanja $(\mu + \lambda)$ (eng.~{\em steady state genetic algorithm}), 
 predstavlja broj pojedinaca u populaciji, a $\lambda$ broj dece. \\
  
 U slučaju generacijskih genetskih algoritama, nova generacija se dobija tako što se 
-seelekcijom bira dovoljno jedinki iz tekuće generacije da se napravi cela nova generacija.
+selekcijom bira dovoljno jedinki iz tekuće generacije da se napravi cela nova generacija.
 Izabrane jedinke se ukrštaju i mutiraju i tako dobijena generacija zamenjuje staru.
 $(\mu, \lambda)$ - od $\mu$ roditelja kreira se $\lambda$ dece i 
-za novu generaciju uzimaju se najbolji međ decom.\\ 
+za novu generaciju uzimaju se najbolji među decom.\\ 
  
 U slučaju genetskih algoritama stabilnog stanja, čim se izabere par roditelja, 
 vrši se ukštanje i mutacija, a potom umetanje potomaka u populaciju u 
@@ -433,7 +433,7 @@ u sledećem poglavlju.
 \label{sec:ea_varijante}
 Da bismo dobili što bolje rešenje pokušavamo da kombinujemo različite tehnike 
 operatora selekcije, ukrštanja i mutacije, koje su opisane u prethodnim poglavljima. 
-Negde čak nećemo imate sve navedene operatove, već samo neke od njih. 
+Negde čak nećemo imate sve navedene operatore, već samo neke od njih. 
 U tabeli \ref{tab:EA} možemo da vidimo osnovna svojstva varijanti evolutivnog algoritma 
 koji su implementirani, odnosno šta koristi svaki od pobrojanih algoritama.
 Zajedničko za sve vrste EA je reprezentacija rešenja kao niz bitova i
@@ -478,7 +478,7 @@ S obzirom da je politika zamene $(1,\lambda^*)$ znamo da je populacija veličine
 zbog čega nije moguće vršiti selekciju i ukrštanje, već samo mutaciju. 
 Jedan od parametara ovog algoritma je i $\lambda^*$ koji podrazumevano ima vrednost 10.
 Kreiranje nove generacije vrši se na sledeći način:
-Uzima se jedan jedini mogući roditelj, $\lambda^*$ puta primenjuje se operator mutacije
+uzima se jedan jedini mogući roditelj, $\lambda^*$ puta primenjuje se operator mutacije
 da bi se dobilo najviše $\lambda^*$ dece. Za novu generaciju bira se najbolji od njih,
 pri čemu je funkcija prilagođenosti $f_{SAW}$.\\
 
@@ -488,8 +488,8 @@ Potom se se, nakon određenog broja iteracija (uzeto je 10),
 ažuriraju, čime se akcenat stavlja na ,,teže'' klauze.\\
 
 Dalje poboljšanje ovog SAWEA algoritma izveli su Jong i Kosters \cite{Jong&Kosters}.
-Oni su uveli novu funkciju prilagođenosti poznatu kao Lamarckian-ovu funkciju 
-opisanu u delu \ref{sec:ea_lamarckian}. Ovo unapređene pokazalo se kao bolje rešenje za
+Oni su uveli novi operator mutacije poznat kao Lamarckian-ova SEA-SAW mutacija koja je opisana
+u delu \ref{sec:ea_lamarckian}. Ovo unapređene pokazalo se kao bolje rešenje za
 SAWEA algoritam.
 
 
@@ -531,14 +531,14 @@ kada se utvrdi da je došlo do zaglavljivanja u lokalnom optimumu. \\
 
 Ovo se izvodi pomoću tabu liste (zapravo matrica, jer je lista listi) 
 u koju se smeštaju slični hromozomi koji imaju
-istu fintes funkicju, a do kojih se došlo lokalnom pretragom. Očigledno da oni vode u
+istu fitnes funkciju, a do kojih se došlo lokalnom pretragom. Očigledno da oni vode u
 jedan lokalni optimum, ali i među njima ima razlike. Kada se lista napuni vrši se poređenje
 gena duž cele tabu liste.
 Oni geni koji se ne menjaju verovatno su nas doveli do lokalnog optimuma 
 i njih je potrebno menjati, dok ostale treba
 zadržati tako što će njihova promena biti zabranjena. Takvi geni, koji nisu isti duž cele
 tabu liste, biće ,,zamrznuti''. Zamrznute gene ne mogu izmeniti ni operator mutacije
-ni lokalna pretraga. Veličina tabu liste po prepurici autora je 10.\\
+ni lokalna pretraga. Veličina tabu liste po preporuci autora je 10.\\
 
 U tabeli \ref{tab:ea_tabu_list} geni duž prve i četvrte kolone su svuda isti geni i te
 se kolone neće zamrznuti, odnosno u listu zamrznutih gena (eng.~{\em frozen}) na pozicije 1 i 4 upisuje se
@@ -607,8 +607,8 @@ Sa tehničke strane promenjena je politika zamene i koristi se $(1+1)$ strategij
 (jedan roditelj proizvodi jedno dete), pa je populacija veličine jedan. Ovo u startu dosta
 ubrzava algoritam i lokalna pretraga sada ne usporava rad.
 Kako je populacija veličine jedan, nije moguća selekcija ni ukrštanje, 
-pa se kreiranje nove generacije se vrši na sledeći način: 
-Uzima se jedini mogući roditelj, potom se slučajno-prilagodljivom mutacijom
+pa se kreiranje nove generacije vrši na sledeći način: 
+uzima se jedini mogući roditelj, potom se slučajno-prilagodljivom mutacijom
 \ref{sec:ea_slucajno_prilagodljiva_mutacija} dobija jedno dete. 
 Na njega se primenjuje lokalna pretraga sa flip heuristikom (koja je takođe adaptivna - 
 ne menja zamrznute gene), a potom se ažurira tabu lista.
@@ -626,7 +626,7 @@ pa je zato dalja modifikacija pokušana upravo na njemu. \\
 
 Modifikovani ASAP zadržava populaciju veličine jedan i korišćenje lokalne pretrage i tabu
 liste - elemente koji su se pokazali kao ključni u efikasnosti ovog algoritma.
-Ali, uvodi drugu fitnes funkciju i mutaciju. Umesto $f_{MAX}$ koristi težinsku funkicju
+Ali, uvodi drugu fitnes funkciju i mutaciju. Umesto $f_{MAX}$ koristi težinsku funkciju
 $f_{SAW}$ koja se zbog ažuriranja težina u nekim slučajevima pokazala kao značajno
 unapređenje. Takođe, umesto obične slučajne mutacije, MASAP koristi Lamarckian SEA-SAW
 mutaciju, koja je jedno unapređenje mutacije zasnovane na znanju.
@@ -761,7 +761,7 @@ jasno se vidi velika razlika u efikasnosti između SAWEA (0,43s) i
 ASAP (230,40s)/MASAP (115,30s).
 ASAP i MASAP su u samo 20 iteracija skoro došli do tačnog rešenja, dok je SAWEA dosta dalji,
 polako konvergirao. Naravno, ovakva drastična razlika plaćena je vremenom izvršavanja,
-pa je SAWEA znatno brži. Na težoj instanci se ovoga puta videla i vrmeneska prednost kao i
+pa je SAWEA znatno brži. Na težoj instanci se ovoga puta videla i vremenska prednost kao i
 veća tačnost MASAP-a u odnosu na njegovu nemodifikovanu verziju.
 
 
@@ -788,7 +788,7 @@ Elementi ovog skupa, odnosno jedinke, se nazivaju česticama.
 Svaka čestica predstavlja jedno potencijalno rešenje problema koji se rešava. 
 Čestice se prema zadatim pravilima kreću po prostoru pretraživanja. 
 Kretanje čestica se usmerava u zavisnosti od njihove trenutne pozicije, 
-njihovu do sada najbolje pozicije, kao i do sada najbolje pozicije u čitavom roju. 
+njihove do sada najbolje pozicije, kao i do sada najbolje pozicije u čitavom roju. 
 Ažuriranje pozicija se nastavlja dok ne bude zadovoljen neki od kriterijuma zaustavljanja.
 Takođe se, u svakoj iteraciji, ažurira i najbolje rešenje čitavog roja \\
 
@@ -845,7 +845,7 @@ U ovom poglavlju dat je osnovni oblik algoritma na kojem se zasnivaju ostale var
 i izmene koje će biti detaljnije izložene. Jednu populaciju, odnosno roj, čini unapred
 određen broj čestica, lista potencijalnih rešenja 
 kao i dodeljene brzine za svaku od njih.
-Kroz iteracije računa se fitnes, aužuriraju se brzine i pozicije čestica dok se ne
+Kroz iteracije računa se fitnes, ažuriraju se brzine i pozicije čestica dok se ne
 zadovolji kriterijum zaustavljanja. 
 Dve varijante (PSOSAT i WPSOSAT) uvode i lokalnu pretragu koja se izvodi umesto 
 ažuriranja pozicija, odnosno jednačine \ref{eq:posSIGMOID}.
@@ -1023,9 +1023,9 @@ Sledeća instanca prikazana na slici \ref{img:pso-100-3-4-yes} ograničena je na
 kako posle nije bilo značajnog napretka. PSO-LS (6,18s) ponaša se očekivano s prethodnim
 zaključcima, ali se sada vidi razlika između preostala dva algoritma. 
 PSOSAT (303,84s) zbog loše fitnes funckije i usled nedostatka ažuriranja težina,
-iako blizu rešenja upada u jedan loklani optimum iz koga ne može da se izvuče. 
+iako blizu rešenja upada u jedan lokalni optimum iz koga ne može da se izvuče. 
 Za razliku od njega WPSOSAT (51,65s) u svega nekoliko iteracija jedini dolazi do rešenja.
-U sledećem poglavlju biće prikaz odnos u efikasnosti prethodno dve izložene grupe algoritama
+U sledećem poglavlju biće prikazan odnos u efikasnosti prethodno dve izložene grupe algoritama
 EA i PSO, po odgovarajućim kategorijama.\\
 
 \begin{figure}[h!]
@@ -1086,7 +1086,7 @@ pa je i ovde najbolji MASAP (4,50s) u odnosu na svog prethodnika ASAP (11,38s) i
 WPSOSAT (71,36s). Kako ni jedan od njih nije došao do tačnog rešenja ograničeno je na 
 150 iteracija, pa su data vremena realan prikaz trajanja jedne iteracije. \\
 
-Za instancu aim-200-2\_0-no skoro svi algoritmi dolazili su do rešenja u prvom iteraciji.
+Za instancu aim-200-2\_0-no skoro svi algoritmi dolazili su do rešenja u prvoj iteraciji.
 Po vremenu izvršavanja MASAP (0,75s) i ASAP (0,92s) su se opet pokazali kao brži
 u odnosu na WPSOSAT (8,27s).\\
 
@@ -1111,7 +1111,7 @@ kao podobno rešenje, pa su s toga podeljene u dve kategorije.
 Ako je potrebno brzo odrediti broj zadovoljenih klauza,
 pri čemu nije od velikog značaja tačno rešenje, već je dovoljno i približno,
 a posebno ako su veliki problemi u pitanju, zbog brzine koristiće se SAWEA ili PSO-LS.
-Ako je pak važna brža konvergencija, najbolje se pokazao MASAP, novi algoritam 
+Ako je ipak važna brža konvergencija, najbolje se pokazao MASAP, novi algoritam 
 predstavljen u ovom radu, a potom i njemu blizak ASAP. 
 Oni su zahvaljujući svojim unapređenjima nadmašili FlipGA, 
 kao i sve varijante PSO algoritama.
