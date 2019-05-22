@@ -73,7 +73,7 @@ class EA:
 
 
     def stop_condition(self):
-        return self.current_iteration > self.max_iterations or self.fitness(self.top_chromosome) == self.num_clauses
+        return self.current_iteration >= self.max_iterations or self.fitness(self.top_chromosome) == self.num_clauses
 
 
     def selectionTop10(self):

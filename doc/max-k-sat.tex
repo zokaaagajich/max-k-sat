@@ -1094,9 +1094,24 @@ Još jedan primer ove kategorije prikazan je na slici \ref{img:EAvsPSO-100-3_4-y
 gde su opet svi algoritmi došli do rešenja, i gde se MASAP (2,48s) rangirao kao najbolji,
 za kojim je ASAP (7,13s) i WPSOSAT (8,50) koji je u najmanje iteracija došao do rešenja.
 Već je utvrđeno da njegove pojedinačne iteracije traju duže u odnosu na preostala dva
-algoritma.
+algoritma. \\
 
+Finalno, na slici \ref{img:poredjenje} prikazano je poređenje za sve
+implementirane algoritme koji su pokretani za sve instance prikazane u tabelama
+uključujući i f600 formulu. Plavi stubići označavaju normalizovane podatke za:
+prosečni broj zadovoljenih klauza po iteraciji (tamno plavo) i prosečno trajanje
+jedne iteracije (svetlo plavo). U zavisnosti od potrebe, nekad je poželjnija preciznost, 
+a nekad brzina izvršavanja. Uzimajući u obzir ova dva parametra napravljeno je finalno
+rangirane (crveno) svih algoritama. Ova slika sumira prethodna poređenja i rezultate
+i jasno ističe prednosti MASAP i ASAP algoritama, koje rangiramo kao najbolje. \\
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{poredjenje.png}
+\caption{Rangiranje svih algoritama}\label{img:poredjenje}
+\end{figure}
+
+\newpage
 
 \section{Zaključak}
 \label{sec:zakljucak}
@@ -1120,7 +1135,6 @@ kao i sve varijante PSO algoritama.
 
 \addcontentsline{toc}{section}{Literatura}
 \appendix
-\newpage
 \bibliography{max-k-sat} 
 \bibliographystyle{plain}
 
