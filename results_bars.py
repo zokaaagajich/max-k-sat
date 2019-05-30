@@ -16,13 +16,8 @@ norm_num_sat = norm(num_sat, 0.01)
 norm_time = norm(time, 0.01)
 result = norm(norm(num_sat,0.09)/norm(time,0.02), 0.01)
 
-print(norm_num_sat)
-print(norm_time)
-print(result)
-
 data = np.transpose(np.vstack((norm_num_sat, norm_time, result)))
-
-print(data)
+#print(data)
 
 length = len(data)
 x_labels = ['SAWEA', 'RFEA', 'FlipGA', 'ASAP', 'MASAP', 'PSO-LS', 'PSOSAT', 'WPSOSAT']
@@ -31,10 +26,14 @@ x_labels = ['SAWEA', 'RFEA', 'FlipGA', 'ASAP', 'MASAP', 'PSO-LS', 'PSOSAT', 'WPS
 fig, ax = plt.subplots()
 width = 0.2 # width of bar
 x = np.arange(length)
+plt.xticks(fontsize = 14)
 
-ax.bar(x, data[:,0], width, color='#000080', label='prosek zadovoljenih klauza po iteraciji')
-ax.bar(x + width, data[:,1], width, color='#0151B1', label='prosek trajanja iteracije')
-ax.bar(x + (2 * width), data[:,2], width, color='#BB2115', label='FINALNI RANG: odnos zadovoljenih klauza i trajanja iteracije')
+ax.bar(x, data[:,0], width, color='#000080',
+       label='prosek zadovoljenih klauza po iteraciji')
+ax.bar(x + width, data[:,1], width, color='#0151B1',
+       label='prosek trajanja iteracije')
+ax.bar(x + (2 * width), data[:,2], width, color='#BB2115',
+       label='FINALNI RANG: odnos zadovoljenih klauza i trajanja iteracije')
 
 ax.set_ylim(0, 1.2)
 ax.set_xticks(x + width + width/2)
